@@ -52,6 +52,7 @@ import { ExtensionRequestComponent } from './users/extension-request/extension-r
 import { UserListComponent } from './users/user-list/user-list.component';
 import { UserComponent } from './users/user/user.component';
 import { AsyncTasksComponent } from './async-tasks/async-tasks.component';
+import { SolrSearchComponent } from './solr/solr.search.component';
 
 let appRoutes: Routes = [
     {
@@ -67,6 +68,9 @@ let appRoutes: Routes = [
     }, {
         path: 'home',
         component: HomeComponent
+    }, {
+        path: 'solr-search',
+        component: SolrSearchComponent
     }, {
         path: 'imports',
         component: ImportComponent,
@@ -124,7 +128,7 @@ let appRoutes: Routes = [
 
 appRoutes = appRoutes.concat(
     getRoutesFor('study', StudyComponent, StudyListComponent, {create: AuthAdminOrExpertGuard, update: AuthAdminOrExpertGuard}),
-    getRoutesFor('subject', SubjectComponent, SubjectListComponent, {update: AuthAdminGuard}),
+    getRoutesFor('subject', SubjectComponent, SubjectListComponent, {update: AuthAdminOrExpertGuard}),
     getRoutesFor('examination', ExaminationComponent, ExaminationListComponent, {update: AuthAdminGuard}),
     getRoutesFor('dataset', DatasetComponent, DatasetListComponent, {update: AuthAdminOrExpertGuard}),
     getRoutesFor('center', CenterComponent, CenterListComponent, {create: AuthAdminOrExpertGuard, update: AuthAdminOrExpertGuard}),

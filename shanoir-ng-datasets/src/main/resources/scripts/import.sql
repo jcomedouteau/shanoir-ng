@@ -84,7 +84,7 @@ VALUES
     (4, 1, 'EEGDataset');
 
 INSERT INTO dataset
-	(id, dataset_acquisition_id, origin_metadata_id, study_id, subject_id) 
+	(id, dataset_acquisition_id, origin_metadata_id, updated_metadata_id, study_id, subject_id) 
 VALUES 
 	(1, 1, 1, 1, 1),
 	(2, 2, 2, 1, 1),

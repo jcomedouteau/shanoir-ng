@@ -12,7 +12,7 @@
  * along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
  */
 
-import { HttpResponse } from '@angular/common/http';
+import { HttpResponse, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 
@@ -42,6 +42,30 @@ export class DatasetService extends EntityService<Dataset> {
             .toPromise();
     }
 
+    public downloadDatasets(ids: number[], format: string) {
+        let params = new HttpParams().set("datasetIds", ids.join(',')).set("format", format);
+        return this.http.get(
+            AppUtils.BACKEND_API_DATASET_URL + '/massiveDownload',
+            { observe: 'response', responseType: 'blob', params: params})
+            .toPromise().then(
+            response => {
+                this.downloadIntoBrowser(response);
+            }
+        )
+    }
+
+    public downloadDatasetsByStudy(studyId: number, format: string) {
+        let params = new HttpParams().set("studyId", '' + studyId).set("format", format);
+        return this.http.get(
+            AppUtils.BACKEND_API_DATASET_URL + '/massiveDownloadByStudy',
+            { observe: 'response', responseType: 'blob', params: params})
+            .toPromise().then(
+            response => {
+                this.downloadIntoBrowser(response);
+            }
+        )
+    }
+
     download(dataset: Dataset, format: string): void {
         if (!dataset.id) throw Error('Cannot download a dataset without an id');
         this.downloadToBlob(dataset.id, format).subscribe(
@@ -57,6 +81,21 @@ export class DatasetService extends EntityService<Dataset> {
             AppUtils.BACKEND_API_DATASET_URL + '/download/' + id + '?format=' + format, 
             { observe: 'response', responseType: 'blob' }
         ).map(response => response);
+    }
+
+    exportBIDSBySubjectId(subjectId: number, subjectName: string, studyName: string): void {
+        if (!subjectId) throw Error('subject id is required');
+        this.http.get(AppUtils.BACKEND_API_DATASET_URL + '/exportBIDS/subjectId/' + subjectId 
+            + '/subjectName/' + subjectName + '/studyName/' + studyName, 
+            { observe: 'response', responseType: 'blob' }
+        ).subscribe(response => {this.downloadIntoBrowser(response);});
+    }
+
+    massiveDownload(datasetIds: number[], format: string):void {
+        if (!datasetIds) throw Error('Cannot download without at least one id');
+        this.http.post(AppUtils.BACKEND_API_DATASET_URL + '/massiveDownload/' + format, JSON.stringify(datasetIds),
+            { observe: 'response', responseType: 'blob' }
+        ).subscribe(response => {this.downloadIntoBrowser(response);});
     }
 
     private getFilename(response: HttpResponse<any>): string {

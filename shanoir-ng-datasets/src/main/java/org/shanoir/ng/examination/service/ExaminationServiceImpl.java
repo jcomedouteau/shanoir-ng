@@ -14,6 +14,7 @@
 
 package org.shanoir.ng.examination.service;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,22 +22,20 @@ import org.shanoir.ng.examination.dto.ExaminationDTO;
 import org.shanoir.ng.examination.dto.mapper.ExaminationMapper;
 import org.shanoir.ng.examination.model.Examination;
 import org.shanoir.ng.examination.repository.ExaminationRepository;
-import org.shanoir.ng.shared.core.model.IdName;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
-import org.shanoir.ng.shared.service.MicroserviceRequestsService;
+import org.shanoir.ng.shared.security.rights.StudyUserRight;
+import org.shanoir.ng.study.rights.StudyUserRightsRepository;
 import org.shanoir.ng.utils.KeycloakUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Examination service implementation.
@@ -54,14 +53,10 @@ public class ExaminationServiceImpl implements ExaminationService {
 
 	@Autowired
 	private ExaminationRepository examinationRepository;
-
-	@Autowired
-	private MicroserviceRequestsService microservicesRequestsService;
-
-
-	@Autowired
-	private RestTemplate restTemplate;
 	
+	@Autowired
+	private StudyUserRightsRepository rightsRepository;
+
 	@Autowired
 	private ExaminationMapper examinationMapper;
 	
@@ -70,10 +65,19 @@ public class ExaminationServiceImpl implements ExaminationService {
 		examinationRepository.delete(id);
 	}
 
+	@Value("${datasets-data}")
+	private String dataDir;
+
+
 	@Override
 	public Page<Examination> findPage(final Pageable pageable) {
-		// Get list of studies reachable by connected user
-		return examinationRepository.findByStudyIdIn(getStudiesForUser(), pageable);
+		if (KeycloakUtil.getTokenRoles().contains("ROLE_ADMIN")) {
+			return examinationRepository.findAll(pageable);			
+		} else {
+			Long userId = KeycloakUtil.getTokenUserId();
+			List<Long> studyIds = rightsRepository.findDistinctStudyIdByUserId(userId, StudyUserRight.CAN_SEE_ALL.getId());
+			return examinationRepository.findByStudyIdIn(studyIds, pageable);
+		}
 	}
 
 	@Override
@@ -176,5 +180,33 @@ public class ExaminationServiceImpl implements ExaminationService {
 		// Get list of studies reachable by connected user
 		return examinationRepository.findByStudyIdInAndPreclinical(getStudiesForUser(), isPreclinical, pageable);
 	}
+
+	@Override
+	public String addExtraData(final Long examinationId, final MultipartFile file) {
+		String filePath = getExtraDataFilePath(examinationId, file.getOriginalFilename());
+		File fileToCreate = new File(filePath);
+		fileToCreate.getParentFile().mkdirs();
+		try {
+			LOG.info("Saving file {} to destination: {}", file.getOriginalFilename(), filePath);
+			file.transferTo(new File(filePath));
+		} catch (Exception e) {
+			LOG.error("Error while loading files on examination: {}. File not uploaded. {}", examinationId, e);
+			e.printStackTrace();
+			return null;
+		}
+		return filePath;
+	}
+
+	/**
+	 * Gets the extra data file path
+	 * @param examinationId id of the examination
+	 * @param fileName name of the file
+	 * @return the file path of the file
+	 */
+	@Override
+	public String getExtraDataFilePath(Long examinationId, String fileName) {
+		return dataDir + "/examination-" + examinationId + "/" + fileName;
+	}
+
 
 }

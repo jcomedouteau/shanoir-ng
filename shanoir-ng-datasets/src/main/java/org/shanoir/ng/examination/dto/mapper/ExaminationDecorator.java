@@ -15,25 +15,20 @@
 package org.shanoir.ng.examination.dto.mapper;
 
 import org.shanoir.ng.examination.dto.ExaminationDTO;
-import org.shanoir.ng.examination.dto.StudyIdsDTO;
-import org.shanoir.ng.examination.dto.StudySubjectCenterNamesDTO;
 import org.shanoir.ng.examination.model.Examination;
 import org.shanoir.ng.shared.core.model.IdName;
+import org.shanoir.ng.shared.model.Center;
+import org.shanoir.ng.shared.model.Study;
+import org.shanoir.ng.shared.model.Subject;
 import org.shanoir.ng.shared.paging.PageImpl;
-import org.shanoir.ng.shared.service.MicroserviceRequestsService;
-import org.shanoir.ng.utils.KeycloakUtil;
+import org.shanoir.ng.shared.repository.CenterRepository;
+import org.shanoir.ng.shared.repository.StudyRepository;
+import org.shanoir.ng.shared.repository.SubjectRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 /**
  * Decorator for examinations mapper.
@@ -47,15 +42,18 @@ public abstract class ExaminationDecorator implements ExaminationMapper {
 	 * Logger
 	 */
 	private static final Logger LOG = LoggerFactory.getLogger(ExaminationDecorator.class);
+	
+	@Autowired
+	private CenterRepository centerRepository;
+	
+	@Autowired
+	private StudyRepository studyRepository;
+	
+	@Autowired
+	private SubjectRepository subjectRepository;
 
 	@Autowired
 	private ExaminationMapper delegate;
-
-	@Autowired
-	private MicroserviceRequestsService microservicesRequestsService;
-
-	@Autowired
-	private RestTemplate restTemplate;
 
 	@Override
 	public PageImpl<ExaminationDTO> examinationsToExaminationDTOs(Page<Examination> page) {
@@ -99,17 +97,12 @@ public abstract class ExaminationDecorator implements ExaminationMapper {
 			} else {
 				LOG.error("Error on study microservice response - status code: {}", namesResponse.getStatusCode());
 			}
-
-			if (names != null) {
-				if (names.getStudy() != null) {
-					examinationDTO.setStudy(new IdName(studyIds.getStudyId(), names.getStudy().getName()));
-				}
-
-				examinationDTO.setSubject(names.getSubject());
-
-				if (names.getCenter() != null) {
-					examinationDTO.setCenter(new IdName(studyIds.getCenterId(), names.getCenter().getName()));
-				}
+		}
+		
+		if (examination.getSubjectId() != null) {
+			final Subject subject = subjectRepository.findOne(examination.getSubjectId());
+			if (subject != null) {
+				examinationDTO.setSubject(new IdName(examination.getSubjectId(), subject.getName()));
 			}
 		}
 
