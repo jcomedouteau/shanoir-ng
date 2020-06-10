@@ -50,6 +50,7 @@ import { CoilListComponent } from './coils/coil-list/coil-list.component';
 import { CoilComponent } from './coils/coil/coil.component';
 import { CoilService } from './coils/shared/coil.service';
 import { DatasetListComponent } from './datasets/dataset-list/dataset-list.component';
+import { DatasetDownaloadComponent } from './datasets/download/dataset-download.component';
 import { CommonDatasetComponent } from './datasets/dataset/common/dataset.common.component';
 import { DatasetComponent } from './datasets/dataset/dataset.component';
 import { EegDatasetComponent } from './datasets/dataset/eeg/dataset.eeg.component';
@@ -62,7 +63,6 @@ import { UploadExtraDataComponent } from './examinations/attached-files/upload-e
 import { ExaminationListComponent } from './examinations/examination-list/examination-list.component';
 import { ExaminationComponent } from './examinations/examination/examination.component';
 import { InstrumentAssessmentComponent } from './examinations/instrument-assessment/instrument-assessment.component';
-import { NewInstrumentComponent } from './examinations/instrument-assessment/new-instrument.component';
 import { ExaminationPipe } from './examinations/shared/examination.pipe';
 import { ExaminationService } from './examinations/shared/examination.service';
 import { SubjectExaminationPipe } from './examinations/shared/subject-examination.pipe';
@@ -224,7 +224,6 @@ import { ImportBrukerService } from './preclinical/importBruker/importBruker.ser
         ExaminationComponent,
         ExaminationPipe,
         ExaminationTreeComponent,
-        NewInstrumentComponent,
         UploadExtraDataComponent,
         ExtensionRequestComponent,
         HeaderComponent,
@@ -258,6 +257,7 @@ import { ImportBrukerService } from './preclinical/importBruker/importBruker.ser
         DatasetComponent,
         EegDatasetComponent,
         DatasetListComponent,
+        DatasetDownaloadComponent,
         DatepickerComponent,
         MrDatasetComponent,
         CommonDatasetComponent,
