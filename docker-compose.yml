@@ -204,7 +204,7 @@ services:
   #
   preclinical-bruker2dicom:
     container_name: preclinical-bruker2dicom
-    image: dicomifier.ws
+    image: jcomedouteau/dicomifier.ws
     command: ["python3", "/root/run.py"]
     volumes:
       - "logs:/var/log/shanoir-ng-logs"
@@ -297,7 +297,6 @@ services:
     volumes:
       - "logs:/var/log/nginx"
       - certificate-share-data:/opt/ssl:ro
-      - "C:/Users/yyao/git/shanoir-ng/shanoir-ng-front/dist:/etc/nginx/html:ro"
     networks:
       - shanoir_ng_network    
     ports:
