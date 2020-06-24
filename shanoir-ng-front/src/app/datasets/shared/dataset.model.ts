@@ -40,6 +40,7 @@ export abstract class Dataset extends Entity {
     subject : Subject;
     originMetadata: DatasetMetadata;
     updatedMetadata : DatasetMetadata = new DatasetMetadata();
+    parentDataset: Dataset;
 
     service: DatasetService = ServiceLocator.injector.get(DatasetService);
 

@@ -130,7 +130,7 @@ public class ImporterServiceTest {
 		importJob.setSubjectName("subjName");
 		importJob.setStudyName("studname");
 		
-		service.createEegDataset(importJob);
+		service.createEegDataset(importJob, 1L);
 		ArgumentCaptor<DatasetAcquisition> datasetAcquisitionCapturer = ArgumentCaptor.forClass(DatasetAcquisition.class);
 		
 		ArgumentCaptor<ShanoirEvent> argument = ArgumentCaptor.forClass(ShanoirEvent.class);

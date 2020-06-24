@@ -102,6 +102,7 @@ export class SelectBoxComponent implements ControlValueAccessor, OnDestroy, OnCh
     }
 
     ngOnChanges(changes: SimpleChanges) {
+        // Take care, this is not trigerred byt "push" on optionArray method.
         if (changes.options && this.options) {
             this.searchText = null;
             this.initSelectedOption();

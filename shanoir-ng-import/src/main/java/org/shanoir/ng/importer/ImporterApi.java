@@ -16,6 +16,8 @@ package org.shanoir.ng.importer;
 
 import java.io.IOException;
 
+import javax.validation.Valid;
+
 import java.io.FileNotFoundException;
 
 import org.shanoir.ng.exchange.model.Exchange;
@@ -32,7 +34,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
@@ -104,6 +105,18 @@ public interface ImporterApi {
     @PreAuthorize("hasRole('ADMIN') or (hasAnyRole('EXPERT', 'USER') and @importSecurityService.hasRightOnOneStudy('CAN_IMPORT'))")
     ResponseEntity<EegImportJob> uploadEEGZipFile(@ApiParam(value = "file detail") @RequestPart("file") MultipartFile eegZipFile) throws RestServiceException;
 
+	@ApiOperation(value = "Upload one NIFTI .zip file, as processed dataset", notes = "Upload Nifti .zip file", response = Void.class, tags={ "Upload one NIFTI .zip file", })
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "success returns file path", response = Void.class),
+        @ApiResponse(code = 400, message = "Invalid input / Bad Request", response = Void.class),
+        @ApiResponse(code = 409, message = "Already exists - conflict", response = Void.class),
+        @ApiResponse(code = 200, message = "Unexpected Error", response = Error.class) })
+    @PostMapping(value = "/upload_nifti/",
+        produces = { "application/json" },
+        consumes = { "multipart/form-data" })
+    @PreAuthorize("hasRole('ADMIN') or (hasAnyRole('EXPERT', 'USER') and @importSecurityService.hasRightOnOneStudy('CAN_IMPORT'))")
+    ResponseEntity<ImportJob> uploadNiftiZipFile(@ApiParam(value = "file detail") @RequestPart("file") MultipartFile niftiZipFile) throws RestServiceException;
+
     @ApiOperation(value = "Import one DICOM .zip file", notes = "Import DICOM .zip file already uploaded", response = Void.class, tags = {
 			"Import one DICOM .zip file", })
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "success returns file path", response = Void.class),
@@ -125,6 +138,17 @@ public interface ImporterApi {
         consumes = { "application/json" })
     @PreAuthorize("hasRole('ADMIN') or (hasAnyRole('EXPERT', 'USER') and @importSecurityService.hasRightOnStudy(#importJob.getStudyId(), 'CAN_IMPORT'))")
     ResponseEntity<Void> startImportJob(@ApiParam(value = "ImportJob", required=true) @RequestBody ImportJob importJob) throws RestServiceException;
+
+    @ApiOperation(value = "Start import nifti job", notes = "Start import job", response = Void.class, tags={ "Start import job", })
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "import job started", response = Void.class),
+        @ApiResponse(code = 400, message = "Invalid input / Bad Request", response = Void.class),
+        @ApiResponse(code = 500, message = "unexpected error", response = Error.class) })
+    @PostMapping(value = "/start_import_nifti_job/",
+        produces = { "application/json" },
+        consumes = { "application/json" })
+    @PreAuthorize("hasRole('ADMIN') or (hasAnyRole('EXPERT', 'USER') and @importSecurityService.hasRightOnStudy(#importJob.getStudyId(), 'CAN_IMPORT'))")
+	public ResponseEntity<Void> startImportNiftiJob(@ApiParam(value = "ImportJob", required = true) @Valid @RequestBody final ImportJob importJob) throws Exception;
 
     @ApiOperation(value = "Start import EEG job", notes = "Start import eeg job", response = Void.class, tags={ "Start import eeg job", })
     @ApiResponses(value = {

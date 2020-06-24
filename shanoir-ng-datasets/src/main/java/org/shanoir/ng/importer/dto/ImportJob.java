@@ -55,6 +55,8 @@ public class ImportJob implements Serializable {
 	private String subjectName;
 
 	private String studyName;
+
+	private Long parentDatasetId;
     
 	public String getArchive() {
 		return archive;
@@ -64,7 +66,14 @@ public class ImportJob implements Serializable {
 		this.archive = archive;
 	}
 	
-	
+	public Long getParentDatasetId() {
+		return parentDatasetId;
+	}
+
+	public void setParentDatasetId(Long parentDatasetId) {
+		this.parentDatasetId = parentDatasetId;
+	}
+
 	public boolean isFromDicomZip() {
 		return fromDicomZip;
 	}

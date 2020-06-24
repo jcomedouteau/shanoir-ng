@@ -126,4 +126,13 @@ public class DatasetServiceImpl implements DatasetService {
 		return Utils.toList(repository.findByStudyId(studyId));
 	}
 
+	public Dataset copyParentDataset(Dataset parentDataset) {
+		Dataset child = new MrDataset();
+		// TODO: define here which fields should be duplicated or not
+		child.setDatasetAcquisition(parentDataset.getDatasetAcquisition());
+		
+		child.setParentDataset(parentDataset);
+		return child;
+	}
+
 }

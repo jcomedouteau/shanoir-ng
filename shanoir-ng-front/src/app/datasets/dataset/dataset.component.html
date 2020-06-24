@@ -26,6 +26,11 @@ along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
 					<h2 class="header command-zone"i18n="Create dataset|Title@@datasetDetailCreateTitle">Create dataset</h2>
 				</ng-template>
 			</span>
+            
+            
+            <node *ngIf="dataset.parentDataset != null" label="coucou">
+            <!-- Ici déclencher l'appel pour avoir la liste des enfants et/ou des parents ? '--> 
+            </node>
 
 			<common-dataset-details [mode]="mode" [dataset]="dataset" [parentFormGroup]="form"></common-dataset-details>
 			<mr-dataset-details *ngIf="dataset.type == 'Mr'" [mode]="mode" [dataset]="dataset"></mr-dataset-details>

@@ -24,6 +24,7 @@ import org.shanoir.ng.datasetacquisition.service.DatasetAcquisitionService;
 import org.shanoir.ng.importer.dto.EegImportJob;
 import org.shanoir.ng.importer.dto.ImportJob;
 import org.shanoir.ng.importer.service.ImporterService;
+import org.shanoir.ng.shared.configuration.RabbitMQConfiguration;
 import org.shanoir.ng.shared.error.FieldErrorMap;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
 import org.shanoir.ng.shared.exception.ErrorDetails;
@@ -46,8 +47,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.ApiParam;
@@ -56,16 +55,16 @@ import io.swagger.annotations.ApiParam;
 public class DatasetAcquisitionApiController implements DatasetAcquisitionApi {
 
 	private static final Logger LOG = LoggerFactory.getLogger(DatasetAcquisitionApiController.class);
-	
+
 	@Autowired
 	private DatasetAcquisitionService datasetAcquisitionService;
-	
+
 	@Autowired
 	private ImporterService importerService;
 
 	@Autowired
 	private ObjectMapper objectMapper;
-	
+
 	@Override
 	public ResponseEntity<Void> createNewDatasetAcquisition(
 			@ApiParam(value = "DatasetAcquisition to create", required = true) @Valid @RequestBody ImportJob importJob) throws RestServiceException {
@@ -76,20 +75,54 @@ public class DatasetAcquisitionApiController implements DatasetAcquisitionApi {
 			throw new RestServiceException(error);
 		}
 		importerService.cleanTempFiles(importJob.getWorkFolder());
-		return new ResponseEntity<Void>(HttpStatus.OK);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@Override
-	public ResponseEntity<Void> createNewEegDatasetAcquisition(@ApiParam(value = "DatasetAcquisition to create" ,required=true )  @Valid @RequestBody EegImportJob importJob) {
-		importerService.createEegDataset(importJob);
-		importerService.cleanTempFiles(importJob.getWorkFolder());
-		return new ResponseEntity<Void>(HttpStatus.OK);
+	@RabbitListener(queues = RabbitMQConfiguration.IMPORTER_QUEUE_DATASET_EEG)
+	@RabbitHandler
+	@Transactional
+	public ResponseEntity<Void> createNewEegDatasetAcquisition(Message importJobStr) throws IOException, AmqpRejectAndDontRequeueException {
+		Long userId = Long.valueOf("" + importJobStr.getMessageProperties().getHeaders().get("x-user-id"));
+
+		EegImportJob importJob = objectMapper.readValue(importJobStr.getBody(), EegImportJob.class);
+		try {
+			importerService.createEegDataset(importJob, userId);
+			importerService.cleanTempFiles(importJob.getWorkFolder());
+		} catch (Exception e) {
+			LOG.error(e.getMessage(), e);
+			throw new AmqpRejectAndDontRequeueException(e);
+		} finally {
+			// if the json could not be parsed, no way to know workFolder
+			// so better to throw the exception, as no possibility to clean
+			importerService.cleanTempFiles(importJob.getWorkFolder());
+		}
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
-	
+
+	@RabbitListener(queues = RabbitMQConfiguration.IMPORTER_QUEUE_DATASET_NIFTI)
+	@RabbitHandler
+	@Transactional
+	public ResponseEntity<Void> createNewNiftiDatasetAcquisition(Message importJobStr) throws IOException, AmqpRejectAndDontRequeueException {
+		Long userId = Long.valueOf("" + importJobStr.getMessageProperties().getHeaders().get("x-user-id"));
+		ImportJob importJob = objectMapper.readValue(importJobStr.getBody(), ImportJob.class);
+		try {
+			this.importerService.createNiftiDataset(importJob, userId);
+			importerService.cleanTempFiles(importJob.getWorkFolder());
+		} catch (Exception e) {
+			LOG.error(e.getMessage(), e);
+			throw new AmqpRejectAndDontRequeueException(e);
+		} finally {
+			// if the json could not be parsed, no way to know workFolder
+			// so better to throw the exception, as no possibility to clean
+			importerService.cleanTempFiles(importJob.getWorkFolder());
+		}
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
 	@RabbitListener(queues = "importer-queue-dataset")
 	@RabbitHandler
 	@Transactional
-	public void createNewDatasetAcquisition(Message importJobStr) throws JsonParseException, JsonMappingException, IOException, AmqpRejectAndDontRequeueException {
+	public void createNewDatasetAcquisition(Message importJobStr) throws IOException, AmqpRejectAndDontRequeueException {
 		Long userId = Long.valueOf("" + importJobStr.getMessageProperties().getHeaders().get("x-user-id"));
 
 		ImportJob importJob = objectMapper.readValue(importJobStr.getBody(), ImportJob.class);
@@ -104,7 +137,7 @@ public class DatasetAcquisitionApiController implements DatasetAcquisitionApi {
 			importerService.cleanTempFiles(importJob.getWorkFolder());
 		}
 	}
-	
+
 	private void createAllDatasetAcquisitions(ImportJob importJob, Long userId) throws Exception {
 		long startTime = System.currentTimeMillis();
 		importerService.createAllDatasetAcquisition(importJob, userId);
@@ -112,25 +145,28 @@ public class DatasetAcquisitionApiController implements DatasetAcquisitionApi {
 		long duration = endTime - startTime;
 		LOG.info("Creation of dataset acquisition required " + duration + " millis.");
 	}
-	
+
 	@Override
 	public ResponseEntity<List<DatasetAcquisition>> findByStudyCard(
 			@ApiParam(value = "id of the study card", required = true) @PathVariable("studyCardId") Long studyCardId) {
-		
+
 		List<DatasetAcquisition> daList = datasetAcquisitionService.findByStudyCard(studyCardId);
-		if (daList.isEmpty()) return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		else return new ResponseEntity<>(daList, HttpStatus.OK);
+		if (daList.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+		} else {
+			return new ResponseEntity<>(daList, HttpStatus.OK);
+		}
 	}
-	
+
 	@Override
 	public ResponseEntity<Void> deleteDatasetAcquisition(
 			@ApiParam(value = "id of the datasetAcquisition", required = true) @PathVariable("datasetAcquisitionId") Long datasetAcquisitionId)
-			throws RestServiceException {
+					throws RestServiceException {
 
 		try {
 			datasetAcquisitionService.deleteById(datasetAcquisitionId);
 			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-			
+
 		} catch (EntityNotFoundException e) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -139,7 +175,7 @@ public class DatasetAcquisitionApiController implements DatasetAcquisitionApi {
 	@Override
 	public ResponseEntity<DatasetAcquisition> findDatasetAcquisitionById(
 			@ApiParam(value = "id of the datasetAcquisition", required = true) @PathVariable("datasetAcquisitionId") Long datasetAcquisitionId) {
-		
+
 		final DatasetAcquisition datasetAcquisition = datasetAcquisitionService.findById(datasetAcquisitionId);
 		if (datasetAcquisition == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -166,18 +202,18 @@ public class DatasetAcquisitionApiController implements DatasetAcquisitionApi {
 		try {
 			datasetAcquisitionService.update(datasetAcquisition);
 			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		
+
 		} catch (EntityNotFoundException e) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 	}
-	
-	
+
+
 	private void validate(BindingResult result) throws RestServiceException {
 		final FieldErrorMap errors = new FieldErrorMap(result);
 		if (!errors.isEmpty()) {
 			ErrorModel error = new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Bad arguments", new ErrorDetails(errors));
 			throw new RestServiceException(error);
-		} 
+		}
 	}
 }

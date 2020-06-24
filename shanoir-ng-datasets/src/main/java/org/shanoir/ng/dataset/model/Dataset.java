@@ -145,6 +145,17 @@ public abstract class Dataset extends AbstractEntity {
 	@OneToOne(cascade = CascadeType.ALL)
 	private DatasetMetadata updatedMetadata;
 
+	@ManyToOne
+	@JoinColumn(name = "parent_dataset_id")
+	private Dataset parentDataset;
+
+	/**
+	 * List of children datasets with the same sampling grid, ie that can be
+	 * superimposed with this dataset.
+	 */
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "parentDataset", cascade = CascadeType.ALL)
+	private List<Dataset> childrenDataset;
+	
 	/**
 	 * @return the creationDate
 	 */
@@ -246,7 +257,7 @@ public abstract class Dataset extends AbstractEntity {
 	public String getName() {
 		if (updatedMetadata != null && !StringUtils.isEmpty(updatedMetadata.getName())) {
 			return updatedMetadata.getName();
-		} else if (!StringUtils.isEmpty(originMetadata.getName())) {
+		} else if (originMetadata != null && !StringUtils.isEmpty(originMetadata.getName())) {
 			return originMetadata.getName();
 		} else {
 			final StringBuilder result = new StringBuilder();
@@ -314,7 +325,9 @@ public abstract class Dataset extends AbstractEntity {
 	 */
 	@Transient
 	public Long getStudyId() {
-		if (getDatasetAcquisition() == null || getDatasetAcquisition().getExamination() == null) return null;
+		if (getDatasetAcquisition() == null || getDatasetAcquisition().getExamination() == null) {
+			return null;
+		}
 		return getDatasetAcquisition().getExamination().getStudyId();
 	}
 
@@ -378,5 +391,35 @@ public abstract class Dataset extends AbstractEntity {
 	public void setImportedStudyId(Long importedStudyId) {
 		this.importedStudyId = importedStudyId;
 	}
+
+	/**
+	 * @return the parentDataset
+	 */
+	public Dataset getParentDataset() {
+		return parentDataset;
+	}
+
+	/**
+	 * @param parentDataset the parentDataset to set
+	 */
+	public void setParentDataset(Dataset parentDataset) {
+		this.parentDataset = parentDataset;
+	}
+
+	/**
+	 * @return the childrenDatasets
+	 */
+	public List<Dataset> getChildrenDataset() {
+		return childrenDataset;
+	}
+
+	/**
+	 * @param childrenDatasets the childrenDatasets to set
+	 */
+	public void setChildrenDataset(List<Dataset> childrenDatasets) {
+		this.childrenDataset = childrenDatasets;
+	}
+	
+	
 
 }

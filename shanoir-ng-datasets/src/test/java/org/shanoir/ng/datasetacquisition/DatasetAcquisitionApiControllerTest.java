@@ -38,7 +38,7 @@ public class DatasetAcquisitionApiControllerTest {
 	@MockBean
 	private ImporterService importerService;
 	
-	@MockBean 
+	@MockBean
 	private DatasetAcquisitionService datasetAcquisitionService;
 	
 	@Autowired
@@ -70,8 +70,8 @@ public class DatasetAcquisitionApiControllerTest {
 				.content(gson.toJson(importJob))).andExpect(status().isOk());
 		
 		// Check calls
-		verify(importerService).createEegDataset(captor.capture());
-		assertEquals(((EegImportJob)captor.getValue()).getDatasets().get(0).getName(), dataset.getName());
+		verify(importerService).createEegDataset(captor.capture(), 1L);
+		assertEquals(captor.getValue().getDatasets().get(0).getName(), dataset.getName());
 		
 		verify(importerService).cleanTempFiles(eq(importJob.getWorkFolder()));
 	}

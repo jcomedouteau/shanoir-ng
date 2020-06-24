@@ -76,6 +76,7 @@ import { EegClinicalContextComponent } from './import/eeg-clinical-context/eeg-c
 import { FinishEegImportComponent } from './import/eeg-finish/eeg-finish.component';
 import { EegSelectSeriesComponent } from './import/eeg-select-series/eeg-select-series.component';
 import { EegUploadComponent } from './import/eeg-upload/eeg-upload.component';
+import { NiftiUploadComponent } from './import/nifti/nifti-upload.component';
 import { FinishImportComponent } from './import/finish/finish.component';
 import { ImportComponent } from './import/import.component';
 import { QueryPacsComponent } from './import/query-pacs/query-pacs.component';
@@ -280,6 +281,7 @@ import { ServiceLocator } from './utils/locator.service';
         EegSelectSeriesComponent,
         DicomUploadComponent,
         EegUploadComponent,
+        NiftiUploadComponent,
         BidsUploadComponent,
         QueryPacsComponent,
         ClinicalContextComponent,

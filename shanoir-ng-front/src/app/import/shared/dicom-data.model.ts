@@ -29,6 +29,7 @@ export class ImportJob {
     archive: string;
     subjectName: String;
     studyName: String;
+    parentDatasetId: number;
 }
 
 export class PatientDicom {

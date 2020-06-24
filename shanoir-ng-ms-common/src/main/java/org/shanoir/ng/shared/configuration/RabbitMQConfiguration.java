@@ -35,7 +35,11 @@ public class RabbitMQConfiguration {
 
 	////////////////// QUEUES //////////////////
 
-	private static final String IMPORTER_QUEUE_DATASET = "importer-queue-dataset";
+	public static final String IMPORTER_QUEUE_DATASET = "importer-queue-dataset";
+	
+	public static final String IMPORTER_QUEUE_DATASET_EEG = "importer-queue-dataset-eeg";
+
+	public static final String IMPORTER_QUEUE_DATASET_NIFTI = "importer-queue-dataset-nifti";
 
 	public static final String DELETE_USER_QUEUE = "delete-user-queue";
 
@@ -216,6 +220,16 @@ public class RabbitMQConfiguration {
 	@Bean
 	public static Queue importerQueue() {
 		return new Queue(IMPORTER_QUEUE_DATASET, true);
+	}
+
+	@Bean
+	public static Queue importerQueueEeg() {
+		return new Queue(IMPORTER_QUEUE_DATASET_EEG, true);
+	}
+
+	@Bean
+	public static Queue importerQueueNifti() {
+		return new Queue(IMPORTER_QUEUE_DATASET_NIFTI, true);
 	}
 
 	@Bean

@@ -44,6 +44,8 @@ public class ImportJob implements Serializable {
     private Long studyId;
     
 	private String studyCardName;
+
+	private Long parentDatasetId;
 	
 	// todo: remove this later, when front end uses StudyCards
     private Long acquisitionEquipmentId;
@@ -153,6 +155,15 @@ public class ImportJob implements Serializable {
 	public void setConverterId(Long converterId) {
 		this.converterId = converterId;
 	}
+
+	public Long getParentDatasetId() {
+		return parentDatasetId;
+	}
+
+	public void setParentDatasetId(Long parentDatasetId) {
+		this.parentDatasetId = parentDatasetId;
+	}
+
 
     public String getAnonymisationProfileToUse() {
 		return anonymisationProfileToUse;

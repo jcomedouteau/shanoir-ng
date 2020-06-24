@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.shanoir.ng.dataset.modality.EegDataset;
 import org.shanoir.ng.dataset.modality.EegDatasetDTO;
+import org.shanoir.ng.dataset.modality.MrDataset;
 import org.shanoir.ng.dataset.model.CardinalityOfRelatedSubjects;
 import org.shanoir.ng.dataset.model.Dataset;
 import org.shanoir.ng.dataset.model.DatasetExpression;
@@ -35,6 +36,7 @@ import org.shanoir.ng.dataset.model.DatasetExpressionFormat;
 import org.shanoir.ng.dataset.model.DatasetMetadata;
 import org.shanoir.ng.dataset.model.DatasetModalityType;
 import org.shanoir.ng.dataset.model.ProcessedDatasetType;
+import org.shanoir.ng.dataset.repository.DatasetRepository;
 import org.shanoir.ng.datasetacquisition.model.DatasetAcquisition;
 import org.shanoir.ng.datasetacquisition.model.eeg.EegDatasetAcquisition;
 import org.shanoir.ng.datasetacquisition.repository.DatasetAcquisitionRepository;
@@ -55,7 +57,6 @@ import org.shanoir.ng.shared.event.ShanoirEvent;
 import org.shanoir.ng.shared.event.ShanoirEventService;
 import org.shanoir.ng.shared.event.ShanoirEventType;
 import org.shanoir.ng.shared.exception.ShanoirException;
-import org.shanoir.ng.utils.KeycloakUtil;
 import org.shanoir.ng.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +98,9 @@ public class ImporterService {
 
 	@Autowired
 	private ShanoirEventService eventService;
+
+	@Autowired
+	private DatasetRepository datasetRepository;
 
 	private static final String SESSION_PREFIX = "ses-";
 
@@ -176,6 +180,7 @@ public class ImporterService {
 
 		}
 	}
+
 	public void createDatasetAcquisitionForSerie(Serie serie, int rank, Examination examination, ImportJob importJob) throws Exception {
 		// Added Temporary check on serie in order not to generate dataset acquisition for series without images.
 		if (serie.getModality() != null
@@ -218,13 +223,15 @@ public class ImporterService {
 			LOG.error("cleanTempFiles: workFolder is null");
 		}
 	}
+
 	/**
 	 * Create a dataset acquisition, and associated dataset.
 	 * @param importJob the import job from importer MS.
+	 * @param userId the user ID
 	 */
-	public void createEegDataset(final EegImportJob importJob) {
+	public void createEegDataset(final EegImportJob importJob, Long userId) {
 
-		ShanoirEvent event = new ShanoirEvent(ShanoirEventType.IMPORT_DATASET_EVENT, importJob.getExaminationId().toString(), KeycloakUtil.getTokenUserId(), "Starting import...", ShanoirEvent.IN_PROGRESS, 0f);
+		ShanoirEvent event = new ShanoirEvent(ShanoirEventType.IMPORT_DATASET_EVENT, importJob.getExaminationId().toString(), userId, "Starting import...", ShanoirEvent.IN_PROGRESS, 0f);
 		eventService.publishEvent(event);
 
 		if (importJob == null || importJob.getDatasets() == null || importJob.getDatasets().isEmpty()) {
@@ -239,7 +246,7 @@ public class ImporterService {
 			DatasetAcquisition datasetAcquisition = new EegDatasetAcquisition();
 
 			// Get examination
-			Examination examination = examinationService.findById(importJob.getExaminationId());
+			Examination examination = examinationRepository.findOne(importJob.getExaminationId());
 
 			datasetAcquisition.setExamination(examination);
 			datasetAcquisition.setAcquisitionEquipmentId(importJob.getAcquisitionEquipmentId());
@@ -362,4 +369,51 @@ public class ImporterService {
 			throw e;
 		}
 	}
+	
+	/**
+	 * Creates a processed dataset from a parent dataset
+	 * @param importJob the importjob allowing to create the dataset
+	 * @param userId the userId realizing the request
+	 */
+	public void createNiftiDataset(final ImportJob importJob, Long userId) {
+		ShanoirEvent event = new ShanoirEvent(ShanoirEventType.IMPORT_DATASET_EVENT, String.valueOf(importJob.getParentDatasetId()), userId, "Starting import...", ShanoirEvent.IN_PROGRESS, 0f);
+		eventService.publishEvent(event);
+		if (importJob.getParentDatasetId() == null) {
+			LOG.error("A parent dataset must be set when importing a processed dataset.");
+			throw new IllegalArgumentException("A parent dataset must be set when importing a processed dataset.");
+		}
+		// TODO: add a check on user rights  here
+		Dataset parentDataset = this.datasetRepository.findOne(importJob.getParentDatasetId());
+		if (parentDataset == null) {
+			LOG.error("The parent dataset could no be found.");
+			throw new IllegalArgumentException("The parent dataset could no be found.");
+		}
+	
+		Dataset childDataset = new MrDataset();
+		//this.datasetService.copy(parentDataset);
+		File directory = new File(importJob.getWorkFolder());
+	
+		List<DatasetFile> dsFiles = new ArrayList<>();
+
+		for(File file : directory.listFiles()) {
+			DatasetFile dsFile = new DatasetFile();
+			dsFile.setPath(file.getAbsolutePath());
+			dsFiles.add(dsFile);
+		}
+		DatasetExpression expression = new DatasetExpression();
+
+		expression.setDatasetFiles(dsFiles);
+		childDataset.setDatasetExpressions(Collections.singletonList(expression));
+		childDataset.setUpdatedMetadata(parentDataset.getUpdatedMetadata());
+		childDataset.setParentDataset(parentDataset);
+		this.datasetRepository.save(childDataset);
+		
+		event.setStatus(ShanoirEvent.SUCCESS);
+		// TODO: here see email PR to set the adapted message in case of success
+		event.setMessage("Successfully published dataset with ID " + childDataset.getId());
+		event.setProgress(1f);
+		eventService.publishEvent(event);
+	}
+
+	
 }

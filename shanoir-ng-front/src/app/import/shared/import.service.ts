@@ -32,6 +32,10 @@ export class ImportService {
         return this.http.post<EegImportJob>(AppUtils.BACKEND_API_UPLOAD_EEG_URL, formData).toPromise();
     }
 
+    uploadNiftiFile(formData: FormData): Promise<ImportJob> {
+        return this.http.post<ImportJob>(AppUtils.BACKEND_API_UPLOAD_NIFTI_URL, formData).toPromise();
+    }
+
     uploadBidsFile(formData: FormData): Promise<Object> {
         return this.http.post<Object>(AppUtils.BACKEND_API_UPLOAD_BIDS_URL, formData).toPromise();
     }
@@ -55,6 +59,17 @@ export class ImportService {
             return Promise.reject(error.message || error);
         }
     }
+
+    async startNiftiImportJob(importJob: ImportJob): Promise<Object> {
+        try {
+            return this.http.post(AppUtils.BACKEND_API_UPLOAD__NIFTI_START_IMPORT_JOB_URL, JSON.stringify(importJob))
+            .toPromise();
+        }
+        catch (error) {
+            return Promise.reject(error.message || error);
+        }
+    }
+ 
 
     /**
      * This function has been added as we need to send the keycloak token in the header,
