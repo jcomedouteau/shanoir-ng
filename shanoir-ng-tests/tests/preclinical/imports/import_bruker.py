@@ -11,11 +11,11 @@ def test_shanoir_import_dicom(driver_to_use, shanoir_util_to_use, selenium_util_
     shanoir_util = shanoir_util_to_use
     
     # Get max ID of dataset to be able to delete it later
-    shanoir_util.go_to_entity("Manage data", "Dataset");
+    shanoir_util.go_to_entity("Manage data", "Datasets");
     id_max = shanoir_util.get_max_id("Id");
     
     # Go to import page
-    shanoir_util.go_to_entity('Import data', 'From BRUKER')
+    shanoir_util.go_to_entity('Import data', 'From Bruker')
 
     # Load file
     driver.execute_script("""document.querySelector("upload-file input[type='file']").removeAttribute("hidden");""")
@@ -119,7 +119,7 @@ def test_shanoir_import_dicom(driver_to_use, shanoir_util_to_use, selenium_util_
     time.sleep(2)
     
     # Check that the dataset is now present
-    shanoir_util.go_to_entity("Manage data", "Dataset");
+    shanoir_util.go_to_entity("Medical data", "Datasets");
     shanoir_util.check_if_shanoir_table_has_rows();
 
     id_to_delete = shanoir_util.get_max_id("Id");
@@ -131,12 +131,12 @@ def test_shanoir_import_dicom(driver_to_use, shanoir_util_to_use, selenium_util_
         id_to_delete = int(id_to_delete) - 1
     
     # Delete examination
-    shanoir_util.go_to_entity("Manage data", "Preclinical Examinations")
+    shanoir_util.go_to_entity("Medical data", "Preclinical Examinations")
     fieldReferenceValue = examFields[0]['value']
     shanoir_util.delete(fieldReferenceValue)
 
     # Search then delete subject
-    shanoir_util.go_to_entity("Manage data", "Preclinical Subjects")
+    shanoir_util.go_to_entity("Medical data", "Preclinical Subjects")
     fieldReferenceValue = fields[0]['value']
     shanoir_util.delete(fieldReferenceValue)
     

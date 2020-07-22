@@ -14,5 +14,5 @@ def test_preclinical_pathology(driver, shanoir_util_to_use):
         'type': 'select',
         'label': 'Pathology'
     }]
-    pathology_menu = ['Manage data', 'Pathology Models']
+    pathology_menu = ['Medical configuration', 'Pathology models']
     shanoir_util_to_use.test_shanoir_crud_entity(pathology_menu, pathology_fields)

@@ -20,5 +20,5 @@ def test_core_center(driver, shanoir_util_to_use):
         'type': 'text',
         'label': 'Country'
     }]
-    menu = ['Manage data', 'Center']
+    menu = ['Medical configuration', 'Centers']
     shanoir_util_to_use.test_shanoir_crud_entity(menu, fields)

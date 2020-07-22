@@ -20,10 +20,10 @@ def test_core_study(driver, shanoir_util_to_use):
         'label': 'End date'
     }, {
         'name': 'center',
-        'value': 'CHU Rennes',
-        'valueEdited': 'CHU Reims',
+        'value': 'CH Colmar',
+        'valueEdited': 'CHGR',
         'type': 'select',
         'label': 'Center'
     }]
-    menu = ['Manage data', 'Research study']
+    menu = ['Medical data', 'Studies']
     shanoir_util_to_use.test_shanoir_crud_entity(menu, fields)

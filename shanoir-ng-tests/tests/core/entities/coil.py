@@ -20,8 +20,8 @@ def test_core_coil(driver, shanoir_util_to_use):
         'label': 'Center'
     }, {
         'name': 'acquiEquipModel',
-        'value': 'Verio 3T (MR) - SIEMENS',
-        'valueEdited': 'Artis Q  (MR) - SIEMENS',
+        'value': 'Achieva 3T',
+        'valueEdited': 'Artis Q',
         'type': 'select',
         'label': 'Aquisition Equipment Model'
     }, {
@@ -37,5 +37,5 @@ def test_core_coil(driver, shanoir_util_to_use):
         'type': 'text',
         'label': 'Number of channels'
     }]
-    menu = ['Manage data', 'Coil']
+    menu = ['Medical configuration', 'Coils']
     shanoir_util_to_use.test_shanoir_crud_entity(menu, fields)

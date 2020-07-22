@@ -160,7 +160,8 @@ export class StudyComponent extends EntityComponent<Study> {
             'monoCenter': [{value: this.study.monoCenter, disabled: this.study.studyCenterList && this.study.studyCenterList.length > 1}, [Validators.required]],
             'studyCenterList': [this.selectedCenter, [this.validateCenter]],
             'subjectStudyList': [this.study.subjectStudyList],
-            'protocolFile': []
+            'protocolFile': [],
+            'center': [],
         });
         return formGroup;
     }

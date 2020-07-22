@@ -27,13 +27,12 @@ class Shanoir_util:
         time.sleep(1)
         selenium_utility.wait_to_be_clickable_and_click("//button[@name='login']")
     
-        welcome_xpath = "//div[@class='header-component']//span[@class='welcome']"
-        selenium_utility.wait_to_be_visible(welcome_xpath)
+        home_xpath = "//home/div/div/img[@src='assets/images/logo.shanoir.black.png']"
+        selenium_utility.wait_to_be_visible(home_xpath)
         time.sleep(1)
-        assert "Welcome" in selenium_utility.get_innertext(welcome_xpath)
     
     def logout(self):
-        selenium_utility.wait_to_be_clickable_and_click("//button[contains(.,'Logout')]")
+        selenium_utility.wait_to_be_clickable_and_click("//a[contains(.,'Logout')]")
         selenium_utility.wait_to_be_visible("//input[@id='username']")
         assert selenium_utility.count_elements("//div[contains(.,'Connect to Shanoir')]") > 0
     
@@ -43,11 +42,15 @@ class Shanoir_util:
         return selenium_utility.count_elements(table_xpath) > 0
     
     def go_to_entity(self, menu, submenu):
-        button_manage_data_xpath = "//span[contains(.,'"+ menu +"')]"
-        selenium_utility.wait_to_be_clickable_and_click(button_manage_data_xpath)
+        button_entity_xpath = "//li[contains(.,'"+ submenu +"')]"
+        
+        if (not selenium_utility.check_exists_by_xpath(button_entity_xpath)):
+            button_manage_data_xpath = "//li[contains(.,'"+ menu +"')]"
+            selenium_utility.wait_to_be_clickable_and_click(button_manage_data_xpath)
+            
+        selenium_utility.wait_to_be_clickable_and_click(button_entity_xpath)
+
     
-        button_acq_eq_xpath = "//menu-item[@label='"+ submenu +"']"
-        selenium_utility.wait_to_be_clickable_and_click(button_acq_eq_xpath)
     
     def search(self, search_string, select_option):
         time.sleep(1)
@@ -83,8 +86,8 @@ class Shanoir_util:
             print field
             time.sleep(1)
             if (field['type'] == 'select'):
-                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']/div[@class='root']")
-                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']//select-option//div[contains(.,'"+field['value']+"')]")
+                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']")
+                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']/div/div/div[contains(.,'"+field['value']+"')]")
             elif (field['type'] == 'text'):
                 input_xpath = "//input[@formcontrolname='"+field['name']+"']"
                 selenium_utility.clear_input(input_xpath)
@@ -107,8 +110,8 @@ class Shanoir_util:
             time.sleep(1)
 
             if (field['type'] == 'select'):
-                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']/div[@class='root']")
-                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']//select-option//div[contains(.,'"+field['valueEdited']+"')]")
+                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']//span[@class='input-container']")
+                selenium_utility.wait_to_be_clickable_and_click("//select-box[@formcontrolname='"+field['name']+"']/div/div/div[contains(.,'"+field['valueEdited']+"')]")
             elif (field['type'] == 'text'):
                 input_xpath = "//input[@formcontrolname='"+field['name']+"']"
                 selenium_utility.clear_input(input_xpath)

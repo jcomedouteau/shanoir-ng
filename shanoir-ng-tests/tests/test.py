@@ -52,7 +52,7 @@ def start_selenium():
         if b == "ie":
             driver = webdriver.Ie(os.getcwd()+"\IEDriverServer.exe")
         elif b == "chrome":
-            driver = webdriver.Chrome(os.getcwd()+"\chromedriver.exe")
+            driver = webdriver.Chrome("chromedriver")
         else:
             # Firefox
             fp = webdriver.FirefoxProfile()
@@ -85,9 +85,9 @@ if __name__ == "__main__":
         
         if args.shanoir in ["entities", "all"]:
             shanoir_utility.login(args.user, args.password)
-#             test_core_acquisition_equipement(driver, shanoir_utility)
-#             test_core_center(driver, shanoir_utility)
-#             test_core_coil(driver, shanoir_utility)
+            test_core_acquisition_equipement(driver, shanoir_utility)
+            test_core_center(driver, shanoir_utility)
+            test_core_coil(driver, shanoir_utility)
             test_core_study(driver, shanoir_utility)
             shanoir_utility.logout()
             print('Core entities: Success!')

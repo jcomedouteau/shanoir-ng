@@ -156,6 +156,7 @@ def accept_deny_account_request(user, accept):
     else:
         selenium_util.wait_to_be_clickable_and_click("//button[@type='submit' and contains(.,'Deny creation')]")
     
-    cancelButton = "//button[contains(.,'Cancel')]"
+    cancelButton = "//button[contains(.,'Back')]"
     if (selenium_util.check_exists_by_xpath(cancelButton)):
         selenium_util.wait_to_be_clickable_and_click(cancelButton)
+        

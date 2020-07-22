@@ -8,16 +8,16 @@ def test_core_acquisition_equipement(driver, shanoir_util_to_use):
         'label': 'Serial number'
     }, {
         'name': 'manufacturerModel',
-        'value': 'Verio 3T (MR) - SIEMENS',
-        'valueEdited': 'Artis Q  (MR) - SIEMENS',
+        'value': 'Achieva 3T',
+        'valueEdited': 'Artis Q',
         'type': 'select',
-        'label': 'Manufacturer'
+        'label': 'Manufacturer model'
     }, {
         'name': 'center',
-        'value': 'CHU Rennes',
-        'valueEdited': 'CHU Reims',
+        'value': 'CH Colmar',
+        'valueEdited': 'CHGR',
         'type': 'select',
         'label': 'Center'
     }]
-    menu = ['Manage data', 'Acquisition equipment']
+    menu = ['Medical configuration', 'Acquisition equipments']
     shanoir_util_to_use.test_shanoir_crud_entity(menu, fields)
