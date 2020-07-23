@@ -179,7 +179,7 @@ class Shanoir_util:
 
         # Dataset is ordered by Id by default (Be careful -> specific code here for dataset table)
         if (self.check_if_shanoir_table_has_rows()):
-            xpath = "//shanoir-table/tbody/tr[1]/td[1]/span"
+            xpath = "//shanoir-table/tbody/tr[1]/td[2]/span"
             return driver.find_element_by_xpath(xpath).text
         return 0;
     

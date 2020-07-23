@@ -11,7 +11,7 @@ def test_shanoir_import_dicom(driver_to_use, shanoir_util_to_use, selenium_util_
     shanoir_util = shanoir_util_to_use
     
     # Get max ID of dataset to be able to delete it later
-    shanoir_util.go_to_entity("Manage data", "Datasets");
+    shanoir_util.go_to_entity("Medical data", "Datasets");
     id_max = shanoir_util.get_max_id("Id");
     
     # Go to import page
@@ -38,17 +38,13 @@ def test_shanoir_import_dicom(driver_to_use, shanoir_util_to_use, selenium_util_
     selenium_util.wait_to_be_clickable_and_click("//button[contains(., 'Next')]")
 
     # Create a new dataset
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select an existing research study']//select-box")
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select an existing research study']//select-box//select-option//div[text() = 'NATIVE Divers']")
+    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a research study']//select-box")
+    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a research study']//select-box/div/div/div[contains(., 'NATIVE Divers')]")
 
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a center']//select-box")
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a center']//select-box//select-option//div[text() = 'CHU Rennes']")
-    
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select an acquisition equipment']//select-box")
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select an acquisition equipment']//select-box//select-option//div[text() = 'SIEMENS - Verio 3T (MR) 40296 - CHU Rennes']")    
-    
-    # TODO: Create a new subject
-    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a subject']//select-box//span/*[(local-name()='svg') and (@data-icon='file')]")    
+    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a study card']//select-box")
+    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a study card']//select-box/div/div/div[contains(., 'StudyCard1')]")
+   
+    selenium_util.wait_to_be_clickable_and_click("//ol/li[label/text() = 'Select a subject']//select-box//span/*[(local-name()='svg') and (@data-icon='plus')]")    
 
     # Maybe test here to add pathological / anesthetic
     random_int = random.randint(1, 100000)
