@@ -14,5 +14,5 @@ def test_preclinical_anesthetic(driver, shanoir_util_to_use):
         'type': 'select',
         'label': 'Type'
     }]
-    anes_menu = ['Medical configuration', 'Anesthetics']
+    anes_menu = ['Preclinical', 'Anesthetics']
     shanoir_util_to_use.test_shanoir_crud_entity(anes_menu, anes_fields)

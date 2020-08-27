@@ -175,6 +175,8 @@ class Shanoir_util:
         self.delete(fieldReferenceValue)
         
     def get_max_id(self, col_id):
+        time.sleep(5)
+
         assert selenium_utility.check_exists_by_xpath("//shanoir-table/thead//span[text()='" + col_id +"']")
 
         # Dataset is ordered by Id by default (Be careful -> specific code here for dataset table)

@@ -15,5 +15,5 @@ def test_preclinical_therapy(driver, shanoir_util_to_use):
         'type': 'select',
         'label': 'Type'
     }]
-    therapy_menu = ['Medical configuration', 'Therapies']
+    therapy_menu = ['Preclinical', 'Therapies']
     shanoir_util_to_use.test_shanoir_crud_entity(therapy_menu, therapy_fields)
