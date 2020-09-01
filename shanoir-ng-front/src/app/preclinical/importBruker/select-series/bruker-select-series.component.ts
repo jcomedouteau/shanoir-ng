@@ -53,12 +53,15 @@ export class BrukerSelectSeriesComponent {
     }
 
 
-    private showSerieDetails(nodeParams: any): void {
+    private showSerieDetails(nodeParams: any, serie: SerieDicom): void {
         this.detailedPatient = null;
         if (nodeParams && this.detailedSerie && nodeParams.seriesInstanceUID == this.detailedSerie["seriesInstanceUID"]) {
             this.detailedSerie = null;
         } else {
             this.detailedSerie = nodeParams;
+            setTimeout(() => { // so the details display has no delay
+                if (serie && serie.images) this.initPapaya(serie); 
+            });
         }
     }
 
@@ -101,6 +104,6 @@ export class BrukerSelectSeriesComponent {
     }
 
     private next() {
-        this.router.navigate(['imports/brukercontext']);
+        this.router.navigate(['imports/context']);
     }
 }

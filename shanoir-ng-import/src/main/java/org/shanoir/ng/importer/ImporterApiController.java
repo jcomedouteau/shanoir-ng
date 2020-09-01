@@ -576,6 +576,7 @@ public class ImporterApiController implements ImporterApi {
 				throw new RestServiceException(
 						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), NO_FILE_UPLOADED, null));
 			}
+			
 			if (!dicomImporterService.isZipFile(bidsFile)) {
 				// .SEF ?
 				throw new RestServiceException(
@@ -598,7 +599,7 @@ public class ImporterApiController implements ImporterApi {
 			module.addAbstractTypeMapping(StudyUserInterface.class, StudyUser.class);
 			mapper.registerModule(module);
 			// Here we wait for the response => to be sure that the subjects are created
-			String participantString = (String) rabbitTemplate.convertSendAndReceive(RabbitMQConfiguration.SUBJECTS_EXCHANGE, "", participantsFile.getAbsolutePath());
+			String participantString = (String) rabbitTemplate.convertSendAndReceive(RabbitMQConfiguration.SUBJECTS_QUEUE, participantsFile.getAbsolutePath());
 			List<IdName> participants = Arrays.asList(mapper.readValue(participantString, IdName[].class));
 			// If we receive a unique subject with no ID => It's an error
 			if (participants.size() == 1 && participants.get(0).getId() == null) {

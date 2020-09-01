@@ -17,7 +17,6 @@ package org.shanoir.ng.importer.dto;
 import java.io.Serializable;
 import java.util.List;
 
-
 /**
  * @author atouboul
  *
@@ -26,31 +25,31 @@ public class ImportJob implements Serializable {
 
 	private static final long serialVersionUID = 8804929608059674037L;
 
-    private boolean fromDicomZip;
+	private boolean fromDicomZip;
 
-    private boolean fromShanoirUploader;
+	private boolean fromShanoirUploader;
 
-    private boolean fromPacs;
+	private boolean fromPacs;
 
 	private String workFolder;
 
-    private List<Patient> patients;
-    
-    private Long examinationId;
-    
-    private Long studyCardId;
-    
-    private Long studyId;
+	private List<Patient> patients;
+
+	private Long examinationId;
+
+	private Long studyCardId;
+
+	private Long studyId;
 
 	private String studyCardName;
-	
-    private Long acquisitionEquipmentId;
-	
+
+	private Long acquisitionEquipmentId;
+
 	private String anonymisationProfileToUse;
-    
-    private Long converterId;
-    
-    private String archive;
+
+	private Long converterId;
+
+	private String archive;
 
 	private String subjectName;
 
@@ -115,7 +114,7 @@ public class ImportJob implements Serializable {
 		this.examinationId = examinationId;
 	}
 
-    public String getWorkFolder() {
+	public String getWorkFolder() {
 		return workFolder;
 	}
 
@@ -147,11 +146,11 @@ public class ImportJob implements Serializable {
 		this.studyCardName = studyCardName;
 	}
 
-	public Long getacquisitionEquipmentId() {
+	public Long getAcquisitionEquipmentId() {
 		return acquisitionEquipmentId;
 	}
 
-	public void setacquisitionEquipmentId(final Long acquisitionEquipmentId) {
+	public void setAcquisitionEquipmentId(Long acquisitionEquipmentId) {
 		this.acquisitionEquipmentId = acquisitionEquipmentId;
 	}
 
@@ -163,7 +162,7 @@ public class ImportJob implements Serializable {
 		this.converterId = ConverterId;
 	}
 
-    public String getAnonymisationProfileToUse() {
+	public String getAnonymisationProfileToUse() {
 		return anonymisationProfileToUse;
 	}
 
@@ -187,4 +186,3 @@ public class ImportJob implements Serializable {
 		this.studyName = studyName;
 	}
 }
-
