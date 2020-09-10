@@ -18,7 +18,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,10 +25,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.zip.ZipOutputStream;
 
 import javax.validation.Valid;
 
@@ -39,31 +36,22 @@ import org.shanoir.ng.exchange.model.ExStudy;
 import org.shanoir.ng.exchange.model.ExStudyCard;
 import org.shanoir.ng.exchange.model.ExSubject;
 import org.shanoir.ng.exchange.model.Exchange;
-import org.shanoir.ng.importer.dicom.DicomDirCreator;
 import org.shanoir.ng.importer.dicom.DicomImporterService;
 import org.shanoir.ng.importer.dicom.ImagesCreatorAndDicomFileAnalyzerService;
 import org.shanoir.ng.importer.dicom.query.DicomQuery;
 import org.shanoir.ng.importer.dicom.query.QueryPACSService;
-import org.shanoir.ng.importer.dto.CommonIdNamesDTO;
-import org.shanoir.ng.importer.dto.CommonIdsDTO;
-import org.shanoir.ng.importer.dto.ExaminationDTO;
 import org.shanoir.ng.importer.eeg.EEGImporterService;
 import org.shanoir.ng.importer.model.EegDataset;
 import org.shanoir.ng.importer.model.EegImportJob;
 import org.shanoir.ng.importer.model.ImportJob;
 import org.shanoir.ng.importer.model.Patient;
-import org.shanoir.ng.importer.model.Serie;
-import org.shanoir.ng.importer.model.Study;
 import org.shanoir.ng.importer.model.Subject;
 import org.shanoir.ng.importer.nifti.NiftiImporterService;
 import org.shanoir.ng.shared.configuration.RabbitMQConfiguration;
-import org.shanoir.ng.shared.core.model.IdName;
 import org.shanoir.ng.shared.exception.ErrorModel;
 import org.shanoir.ng.shared.exception.RestServiceException;
 import org.shanoir.ng.shared.exception.ShanoirException;
 import org.shanoir.ng.shared.exception.ShanoirImportException;
-import org.shanoir.ng.study.rights.StudyUser;
-import org.shanoir.ng.study.rights.StudyUserInterface;
 import org.shanoir.ng.utils.ImportUtils;
 import org.shanoir.ng.utils.KeycloakUtil;
 import org.slf4j.Logger;
@@ -73,8 +61,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -84,12 +70,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import io.swagger.annotations.ApiParam;
 
@@ -118,6 +102,8 @@ public class ImporterApiController implements ImporterApi {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ImporterApiController.class);
 
+	private static final String DICOMDIR = "DICOMDIR";
+
 	private static final String APPLICATION_ZIP = "application/zip";
 
 	/** The Constant KB. */
@@ -141,8 +127,8 @@ public class ImporterApiController implements ImporterApi {
 	@Value("${ms.url.shanoir-ng-create-examination}")
 	private String createExaminationMsUrl;
 
-	@Autowired
-	private RestTemplate restTemplate;
+	@Value("${shanoir.import.directory}")
+	private String importDir;
 
 	@Autowired
 	private DicomDirGeneratorService dicomDirGeneratorService;
@@ -171,6 +157,25 @@ public class ImporterApiController implements ImporterApi {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	public ResponseEntity<Void> uploadFiles(
+			@ApiParam(value = "file detail") @RequestPart("files") final MultipartFile[] files)
+			throws RestServiceException {
+		if (files.length == 0) {
+			throw new RestServiceException(
+					new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), NO_FILE_UPLOADED, null));
+		}
+		try {
+			// not used currently
+			for (int i = 0; i < files.length; i++) {
+				ImportUtils.saveTempFile(new File(importDir), files[i]);
+			}
+			return new ResponseEntity<>(HttpStatus.OK);
+		} catch (IOException e) {
+			throw new RestServiceException(
+					new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), ERROR_WHILE_SAVING_UPLOADED_FILE, null));
+		}
+	}
+
 	@Override
 	public ResponseEntity<String> createTempDir() throws RestServiceException {
 		final File userImportDir = dicomImporterService.getUserImportDir();
@@ -187,13 +192,12 @@ public class ImporterApiController implements ImporterApi {
 
 	@Override
 	public ResponseEntity<ImportJob> uploadDicomZipFile(
-			@ApiParam(value = "file detail") @RequestPart("file") final MultipartFile dicomZipFile)
-					throws RestServiceException {
-		if (dicomZipFile == null) {
+			@ApiParam(value = "file detail") @RequestPart("file") final MultipartFile dicomZipFile) throws RestServiceException {
+		if (dicomZipFile == null || !ImportUtils.isZipFile(dicomZipFile)) {
 			throw new RestServiceException(
 					new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), WRONG_CONTENT_FILE_UPLOAD, null));
 		}
-		if (!dicomImporterService.isZipFile(dicomZipFile)) {
+		if (!ImportUtils.isZipFile(dicomZipFile)) {
 			throw new RestServiceException(new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(),
 					"Wrong content type of file upload, .zip required.", null));
 		}
@@ -203,8 +207,26 @@ public class ImporterApiController implements ImporterApi {
 			 * the import work folder (the root of everything): split imports to clearly
 			 * separate them into separate folders for each user
 			 */
-			File userImportDir = dicomImporterService.getUserImportDir();
-			File importJobDir = dicomImporterService.saveTempFileCreateFolderAndUnzip(userImportDir, dicomZipFile, true);
+			File userImportDir = ImportUtils.getUserImportDir(importDir);
+			
+			boolean createDicomDir = false;
+
+			File tempFile = ImportUtils.saveTempFile(userImportDir, dicomZipFile);
+
+			if (!ImportUtils.checkZipContainsFile(DICOMDIR, tempFile)) {
+				createDicomDir = true;
+			}
+			
+			File importJobDir = ImportUtils.saveTempFileCreateFolderAndUnzip(tempFile, dicomZipFile, true);
+
+			if (createDicomDir) {
+				LOG.info("DICOMDIR missing from zip file, generating one.");
+				final File dicomDir = new File(importJobDir, DICOMDIR);
+				if (!dicomDir.exists()) {
+					dicomDirGeneratorService.generateDicomDirFromDirectory(dicomDir, importJobDir);
+					LOG.info("DICOMDIR generated at path: {}", dicomDir.getAbsolutePath());
+				}
+			}
 
 			/**
 			 * 2. STEP: prepare patients list to be put into ImportJob: read DICOMDIR and
@@ -279,7 +301,6 @@ public class ImporterApiController implements ImporterApi {
 	public ResponseEntity<Void> startImportJob(
 			@ApiParam(value = "ImportJob", required = true) @Valid @RequestBody final ImportJob importJob)
 					throws RestServiceException {
-		// TOOD: precise in the title that it's DICOM
 		File userImportDir = dicomImporterService.getUserImportDir();
 		final Long userId = KeycloakUtil.getTokenUserId();
 		String tempDirId = importJob.getWorkFolder();
@@ -352,14 +373,14 @@ public class ImporterApiController implements ImporterApi {
 	 */
 	public ResponseEntity<EegImportJob> uploadEEGZipFile(
 			@ApiParam(value = "file detail") @RequestPart("file") final MultipartFile eegFile)
-					throws RestServiceException {
+			throws RestServiceException {
 		try {
 			// Do some checks about the file, must be != null and must be a .zip file
 			if (eegFile == null) {
 				throw new RestServiceException(
 						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), NO_FILE_UPLOADED, null));
 			}
-			if (!dicomImporterService.isZipFile(eegFile)) {
+			if (!ImportUtils.isZipFile(eegFile)) {
 				throw new RestServiceException(
 						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), WRONG_CONTENT_FILE_UPLOAD, null));
 			}
@@ -374,7 +395,9 @@ public class ImporterApiController implements ImporterApi {
 			}
 
 			// Unzip the file and get the elements
-			File importJobDir = dicomImporterService.saveTempFileCreateFolderAndUnzip(userImportDir, eegFile, false);
+			File tempFile = ImportUtils.saveTempFile(userImportDir, eegFile);
+
+			File importJobDir = ImportUtils.saveTempFileCreateFolderAndUnzip(tempFile, eegFile, false);
 
 			EegImportJob importJob = new EegImportJob();
 			importJob.setWorkFolder(importJobDir.getName());
@@ -499,8 +522,7 @@ public class ImporterApiController implements ImporterApi {
 		final File userImportDir = dicomImporterService.getUserImportDir();
 		final File tempDir = new File(userImportDir, exchange.getTempDirId());
 
-		// TODO: constant
-		final File dicomDir = new File(tempDir, "DICOMDIR");
+		final File dicomDir = new File(tempDir, DICOMDIR);
 		if (!dicomDir.exists()) {
 			dicomDirGeneratorService.generateDicomDirFromDirectory(dicomDir, tempDir);
 			LOG.info("DICOMDIR generated at path: " + dicomDir.getAbsolutePath());
@@ -555,217 +577,6 @@ public class ImporterApiController implements ImporterApi {
 	}
 
 	/**
-	 * This methods import a bunch of datasets from a Shanoir Exchange Format (based
-	 * on BIDS format)
-	 * 
-	 * @param bidsFile
-	 *            the file
-	 * @throws ShanoirException
-	 *             when something gets wrong during the import
-	 * @throws IOException
-	 *             when IO fails
-	 * @throws RestServiceException
-	 */
-	@Override
-	public ResponseEntity<ImportJob> importAsBids(
-			@ApiParam(value = "file detail") @RequestPart("file") final MultipartFile bidsFile)
-					throws RestServiceException, ShanoirException, IOException {
-		// Check that the file is not null and well zipped
-		try {
-			if (bidsFile == null) {
-				throw new RestServiceException(
-						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), NO_FILE_UPLOADED, null));
-			}
-			
-			if (!dicomImporterService.isZipFile(bidsFile)) {
-				// .SEF ?
-				throw new RestServiceException(
-						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), WRONG_CONTENT_FILE_UPLOAD, null));
-			}
-
-			// Create tmp folder and unzip archive
-			final File userImportDir = dicomImporterService.getUserImportDir();
-			File importJobDir = dicomImporterService.saveTempFileCreateFolderAndUnzip(userImportDir, bidsFile, false);
-			// Deserialize participants.tsv => Do a call to studies API to create
-			// corresponding subjects
-			File participantsFile = new File(importJobDir.getAbsolutePath() + "/participants.tsv");
-			if (!participantsFile.exists()) {
-				throw new ShanoirException("participants.tsv file is mandatory");
-			}
-
-			ObjectMapper mapper = new ObjectMapper();
-
-			SimpleModule module = new SimpleModule();
-			module.addAbstractTypeMapping(StudyUserInterface.class, StudyUser.class);
-			mapper.registerModule(module);
-			// Here we wait for the response => to be sure that the subjects are created
-			String participantString = (String) rabbitTemplate.convertSendAndReceive(RabbitMQConfiguration.SUBJECTS_QUEUE, participantsFile.getAbsolutePath());
-			List<IdName> participants = Arrays.asList(mapper.readValue(participantString, IdName[].class));
-			// If we receive a unique subject with no ID => It's an error
-			if (participants.size() == 1 && participants.get(0).getId() == null) {
-				throw new ShanoirException(participants.get(0).getName());
-			}
-
-			File studyDescriptionFile = new File(importJobDir.getAbsolutePath() + "/dataset_description.json");
-			if (!studyDescriptionFile.exists()) {
-				throw new ShanoirException("studyDescriptionFile file is mandatory");
-			}
-
-			// Then import data
-			File sourceData = new File(importJobDir.getAbsolutePath() + "/sourcedata");
-			if (!sourceData.exists()) {
-				throw new ShanoirException("sourcedata folder is mandatory");
-			}
-
-			// 2) Import Datasets
-			File[] subjectFiles = sourceData.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.startsWith("sub-");
-				}
-			});
-			ImportJob job = null;
-
-			for (File subjFile : subjectFiles) {
-				// Get subjectName
-				String subjectName = subjFile.getName().substring("sub-".length());
-
-				// Read shanoirImportFile
-				File shanoirImportFile = new File(subjFile.getAbsolutePath() + "/shanoir-import.json");
-
-				if (!shanoirImportFile.exists()) {
-					throw new ShanoirException("shanoir-import.json file is mandatory in subject folder");
-				}
-
-				ObjectMapper objectMapper = new ObjectMapper();
-				ImportJob sid = objectMapper.readValue(shanoirImportFile, ImportJob.class);
-				CommonIdsDTO idsDTO = new CommonIdsDTO(null, sid.getStudyId(), null,
-						sid.getAcquisitionEquipmentId());
-				final HttpEntity<CommonIdsDTO> requestBody = new HttpEntity<>(idsDTO, KeycloakUtil.getKeycloakHeader());
-				// Post to dataset MS to finish import and create associated datasets
-				ResponseEntity<CommonIdNamesDTO> response = restTemplate.exchange(studiesCommonMsUrl, HttpMethod.POST,
-						requestBody, CommonIdNamesDTO.class);
-				// Check that equipement exists
-				// Check that study exists
-				// All in one with studies MS CommonsApi
-				// This is not necessary if we further use the studyCard
-				if (response.getBody().getEquipement() == null) {
-					throw new ShanoirException(
-							"Equipement with ID " + sid.getAcquisitionEquipmentId() + " does not exists.");
-				}
-				if (response.getBody().getStudy() == null) {
-					throw new ShanoirException("Study with ID " + sid.getStudyId() + " does not exists.");
-				}
-				// Subject based on folder name
-				Long subjectId = getSubjectIdByName(subjectName, participants);
-				if (subjectId == null) {
-					throw new ShanoirException(
-							"Subject " + subjectName + " could not be created. Please check participants.tsv file.");
-				}
-
-				// If there is no DICOMDIR: create it
-				File dicomDir = new File(subjFile.getAbsolutePath() + "/DICOM/DICOMDIR");
-				if (!dicomDir.exists()) {
-					DicomDirCreator creator = new DicomDirCreator(subjFile.getAbsolutePath() + "/DICOMDIR",
-							subjFile.getAbsolutePath() + "/DICOM");
-					creator.start();
-				}
-				// Zip data folders to be able to call ImporterAPIController.uploadDicomZipFile
-				FileOutputStream fos = new FileOutputStream(subjFile.getAbsolutePath() + ".zip");
-				ZipOutputStream zipOut = new ZipOutputStream(fos);
-
-				ImportUtils.zipFile(subjFile, subjFile.getName(), zipOut, true);
-
-				zipOut.close();
-				fos.close();
-				MockMultipartFile multiPartFile = new MockMultipartFile(subjFile.getName(), subjFile.getName() + ".zip",
-						APPLICATION_ZIP, new FileInputStream(subjFile.getAbsolutePath() + ".zip"));
-
-				// Send data folder to import API and get import job
-				ResponseEntity<ImportJob> entity = this.uploadDicomZipFile(multiPartFile);
-
-				// Complete ImportJob to use startImportJob
-				job = entity.getBody();
-
-				// Construire l'arborescence
-				job.setAcquisitionEquipmentId(sid.getAcquisitionEquipmentId());
-				job.setStudyId(sid.getStudyId());
-
-				job.setFromPacs(false);
-				job.setFromShanoirUploader(false);
-				job.setFromDicomZip(true);
-				for (Patient pat : job.getPatients()) {
-					pat.setPatientName(subjectName);
-					Subject subject = new Subject();
-					subject.setId(subjectId);
-					subject.setName(subjectName);
-					pat.setSubject(subject);
-
-					// Select all series to be imported
-					for (Study study : pat.getStudies()) {
-						for (Serie serie : study.getSeries()) {
-							serie.setSelected(Boolean.TRUE);
-						}
-					}
-				}
-
-				// Create a new examination if not existing
-				if (sid.getExaminationId() == null || sid.getExaminationId().equals(Long.valueOf(0l))) {
-					// Create examination => We actually need its ID so do a direct API call
-					ExaminationDTO examDTO = new ExaminationDTO();
-					// Construct DTO
-					examDTO.setCenter(new IdName(Long.valueOf(1), null));
-					examDTO.setPreclinical(false); // Pour le moment on fait que du DICOM
-					examDTO.setStudy(new IdName(sid.getStudyId(), response.getBody().getStudy().getName()));
-					examDTO.setSubject(new IdName(subjectId, subjectName));
-					examDTO.setExaminationDate(job.getPatients().get(0).getStudies().get(0).getStudyDate());
-					examDTO.setComment(job.getPatients().get(0).getStudies().get(0).getStudyDescription());
-
-					final HttpEntity<ExaminationDTO> requestBodyExam = new HttpEntity<>(examDTO,
-							KeycloakUtil.getKeycloakHeader());
-					ResponseEntity<ExaminationDTO> examResponse = restTemplate.exchange(createExaminationMsUrl,
-							HttpMethod.POST, requestBodyExam, ExaminationDTO.class);
-					job.setExaminationId(examResponse.getBody().getId());
-				}
-				// Next API call => StartImportJob
-				ResponseEntity<Void> result = this.startImportJob(job);
-				if (!result.getStatusCode().equals(HttpStatus.OK)) {
-					throw new ShanoirException("Error while importing subject: " + subjectName);
-				}
-			}
-			// TODO ONE DAY: Copy "other" files to the bids folder
-			// Copy non datasets elements
-			// Don't copy "data" folder
-			// Don't copy examination_description.json
-			// copy /sourceData??, /code and / files (readme, changes, participants.tsv,
-			// participants.json, etc..)
-			return new ResponseEntity<>(job, HttpStatus.OK);
-
-		} catch (Exception e) {
-			System.err.println("Coucou" + e + e.getMessage() + e.getStackTrace());
-			throw e;
-		}
-	}
-
-	/**
-	 * Get the ID of a subject from its name and a list of subject
-	 * 
-	 * @param name
-	 *            the name of the subject to find
-	 * @param subjects
-	 *            the list of subjects to supply
-	 * @return the ID of the subject corresponding to the name, null otherwise
-	 */
-	public Long getSubjectIdByName(String name, List<IdName> subjects) {
-		for (IdName sub : subjects) {
-			if (sub.getName().equals(name)) {
-				return sub.getId();
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * This methods returns a dicom file
 	 * 
 	 * @param path
@@ -792,10 +603,10 @@ public class ImporterApiController implements ImporterApi {
 		while ((nRead = is.read(data, 0, data.length)) != -1) {
 			buffer.write(data, 0, nRead);
 		}
-
+	 
 		buffer.flush();
 		byte[] byteArray = buffer.toByteArray();
-
+		
 		ByteArrayResource resource = new ByteArrayResource(byteArray);
 
 		return ResponseEntity.ok()

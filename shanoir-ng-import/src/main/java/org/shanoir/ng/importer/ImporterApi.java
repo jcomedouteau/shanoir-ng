@@ -25,7 +25,6 @@ import org.shanoir.ng.importer.dicom.query.DicomQuery;
 import org.shanoir.ng.importer.model.EegImportJob;
 import org.shanoir.ng.importer.model.ImportJob;
 import org.shanoir.ng.shared.exception.RestServiceException;
-import org.shanoir.ng.shared.exception.ShanoirException;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -173,17 +172,7 @@ public interface ImporterApi {
     @PreAuthorize("hasRole('ADMIN') or (hasAnyRole('EXPERT', 'USER') and @importSecurityService.hasRightOnOneStudy('CAN_IMPORT') and @importSecurityService.canImportFromPACS())")
     ResponseEntity<ImportJob> queryPACS(@ApiParam(value = "DicomQuery", required=true) @RequestBody DicomQuery dicomQuery) throws RestServiceException;
 
-    @ApiOperation(value = "Import datasets from a BIDS folder", notes = "Import from bids", response = ImportJob.class, tags={ "BIDS", "Import" })
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "import from bids", response = Void.class),
-        @ApiResponse(code = 400, message = "Invalid input / Bad Request", response = Void.class),
-        @ApiResponse(code = 500, message = "unexpected error", response = Error.class) })
-    @PostMapping(value = "/importAsBids/",
-        produces = { "application/json" },
-        consumes = { "multipart/form-data" })
-    @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT', 'USER')")
-    ResponseEntity<ImportJob> importAsBids(@ApiParam(value = "file detail") @RequestPart("file") MultipartFile bidsZipFile) throws RestServiceException, ShanoirException, IOException;
-
+    
     @ApiOperation(value = "Get dicom image", notes = "Get dicom image", response = Void.class, tags={ "", })
     @ApiResponses(value = {
         @ApiResponse(code = 200, message = "get dicom image", response = Void.class),
