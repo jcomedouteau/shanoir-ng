@@ -29,6 +29,7 @@ import java.util.List;
 import org.shanoir.ng.dataset.modality.EegDataset;
 import org.shanoir.ng.dataset.modality.EegDatasetDTO;
 import org.shanoir.ng.dataset.modality.MrDataset;
+import org.shanoir.ng.dataset.modality.MrDatasetMetadata;
 import org.shanoir.ng.dataset.model.CardinalityOfRelatedSubjects;
 import org.shanoir.ng.dataset.model.Dataset;
 import org.shanoir.ng.dataset.model.DatasetExpression;
@@ -37,6 +38,7 @@ import org.shanoir.ng.dataset.model.DatasetMetadata;
 import org.shanoir.ng.dataset.model.DatasetModalityType;
 import org.shanoir.ng.dataset.model.ProcessedDatasetType;
 import org.shanoir.ng.dataset.repository.DatasetRepository;
+import org.shanoir.ng.dataset.service.DatasetService;
 import org.shanoir.ng.datasetacquisition.model.DatasetAcquisition;
 import org.shanoir.ng.datasetacquisition.model.eeg.EegDatasetAcquisition;
 import org.shanoir.ng.datasetacquisition.service.DatasetAcquisitionService;
@@ -102,6 +104,9 @@ public class ImporterService {
 
 	@Autowired
 	private DatasetRepository datasetRepository;
+
+	@Autowired
+	private DatasetService datasetService;
 
 	private static final String SESSION_PREFIX = "ses-";
 
@@ -396,19 +401,24 @@ public class ImporterService {
 	public void createNiftiDataset(final ImportJob importJob, Long userId) {
 		ShanoirEvent event = new ShanoirEvent(ShanoirEventType.IMPORT_DATASET_EVENT, String.valueOf(importJob.getParentDatasetId()), userId, "Starting import...", ShanoirEvent.IN_PROGRESS, 0f);
 		eventService.publishEvent(event);
+		
+		// NIFTI IMPORT => create directly the dataset from the json ?
 		if (importJob.getParentDatasetId() == null) {
 			LOG.error("A parent dataset must be set when importing a processed dataset.");
 			throw new IllegalArgumentException("A parent dataset must be set when importing a processed dataset.");
 		}
-		// TODO: add a check on user rights  here
 		Dataset parentDataset = this.datasetRepository.findOne(importJob.getParentDatasetId());
 		if (parentDataset == null) {
-			LOG.error("The parent dataset could no be found.");
+			event.setStatus(ShanoirEvent.ERROR);
+			event.setMessage("The parent dataset could not be found.");
+			event.setProgress(1f);
 			throw new IllegalArgumentException("The parent dataset could no be found.");
 		}
-	
-		Dataset childDataset = new MrDataset();
-		//this.datasetService.copy(parentDataset);
+
+		MrDataset childDataset = new MrDataset();
+		MrDatasetMetadata meta = new MrDatasetMetadata();
+		
+		this.datasetService.copyParentDataset(parentDataset);
 		File directory = new File(importJob.getWorkFolder());
 	
 		List<DatasetFile> dsFiles = new ArrayList<>();
@@ -427,7 +437,6 @@ public class ImporterService {
 		this.datasetRepository.save(childDataset);
 		
 		event.setStatus(ShanoirEvent.SUCCESS);
-		// TODO: here see email PR to set the adapted message in case of success
 		event.setMessage("Successfully published dataset with ID " + childDataset.getId());
 		event.setProgress(1f);
 		eventService.publishEvent(event);

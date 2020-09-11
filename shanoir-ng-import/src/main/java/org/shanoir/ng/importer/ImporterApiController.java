@@ -25,6 +25,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -274,19 +275,31 @@ public class ImporterApiController implements ImporterApi {
 			 * separate them into separate folders for each user
 			 */
 			File userImportDir = dicomImporterService.getUserImportDir();
-			File importJobDir = dicomImporterService.saveTempFileCreateFolderAndUnzip(userImportDir, niftiZipFile, false);
+			File tempFile = ImportUtils.saveTempFile(userImportDir, niftiZipFile);
 
-			/**
-			 * STEP 3: prepare patients list to be put into ImportJob: read DICOMDIR and
-			 * complete with meta-data from files
-			 */
-			// TODO: Check that the NIFTI is a nifti, otherwise, send an error ? => Or this is checked later ?
+			File importJobDir = dicomImporterService.saveTempFileCreateFolderAndUnzip(tempFile, niftiZipFile, false);
 
+			// Prepare nifti files
+			List<File> files = Arrays.asList(importJobDir.listFiles());
+			
+			for (File importedFile : files) {
+				// Don't consider not nifti files
+				if (importedFile.getName() == null || !importedFile.getName().endsWith(".nii")) {
+					continue;
+				}
+				File jsonFile = new File(importedFile.getAbsolutePath().replace(".nii", ".json"));
+				if (jsonFile.exists()) {
+					// Consider what's inside to get information
+				}
+			}
+			
+			
 			/**
 			 * STEP 4: create ImportJob
 			 */
 			ImportJob importJob = new ImportJob();
-			importJob.setFromDicomZip(true);
+			importJob.setFromDicomZip(false);
+
 			// Work folder is always relative to general import directory
 			importJob.setWorkFolder(importJobDir.getName());
 			return new ResponseEntity<>(importJob, HttpStatus.OK);
@@ -486,8 +499,7 @@ public class ImporterApiController implements ImporterApi {
 	        });
 			this.rabbitTemplate.convertAndSend(RabbitMQConfiguration.IMPORTER_QUEUE_DATASET_NIFTI, objectMapper.writeValueAsString(importJob));
 		} catch (AmqpException | JsonProcessingException e) {
-			e.printStackTrace();
-			LOG.error("Error while sending rabbit MQ message to create a new processed dataset.");
+			LOG.error("Error while sending rabbit MQ message to create a new processed dataset.", e);
 			throw new RestServiceException(e, new ErrorModel(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage()));
 		}
 		return new ResponseEntity<>(HttpStatus.OK);

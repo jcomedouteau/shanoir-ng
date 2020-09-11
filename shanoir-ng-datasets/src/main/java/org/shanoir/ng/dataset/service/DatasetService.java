@@ -102,4 +102,12 @@ public interface DatasetService {
 	@PostAuthorize("hasRole('ADMIN') or @datasetSecurityService.checkDatasetPage(returnObject, 'CAN_SEE_ALL')")
 	public List<Dataset> findByStudyId(Long studyId);
 
+
+	/**
+	 * Copy elements from a parent dataset.
+	 * @param parentDataset the parent dataset to be copied from
+	 * @return the child copied dataset
+	 */
+	public Dataset copyParentDataset(Dataset parentDataset);
+
 }
