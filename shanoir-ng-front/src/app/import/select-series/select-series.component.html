@@ -43,7 +43,7 @@ along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
                     (buttonClick)="showStudyDetails($event)">
                         <node 
                             *ngFor="let serie of study.series" 
-                            [label]="serie.seriesDescription" 
+                            [label]="serie.seriesDescription ? serie.seriesDescription : 'serie n°' + serie.seriesNumber" 
                             awesome="fa fa-brain" 
                             hasBox="true" 
                             [(ngModel)]="serie.selected"  
@@ -53,7 +53,7 @@ along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
                             [class.selected]="detailedSerie == serie"
                             [ngModelOptions]="{standalone: true}"
                             buttonPicto="fa fa-eye"
-                            (buttonClick)="showSerieDetails($event)">
+                            (buttonClick)="showSerieDetails($event, serie)">
                         </node>
                 </node>
         </node>
@@ -99,8 +99,11 @@ along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
 
     <div class="data-preview" *ngIf="detailedSerie">
         <h3>Serie</h3>
-        <div>
+        <div *ngIf="!papayaError && modality != 'Ct'"> 
             <papaya [params]="papayaParams"></papaya>
+        </div>
+        <div *ngIf="papayaError" class="error"> 
+            Sorry, there was an error with the papaya viewer.
         </div>
         <table>
             <tr class="item">

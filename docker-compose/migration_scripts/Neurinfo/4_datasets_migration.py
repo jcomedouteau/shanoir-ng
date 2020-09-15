@@ -348,7 +348,7 @@ for row in sourceCursor.fetchall():
 	study_card_rule = list(row)
 	if 'refDatasetModalityType' == study_card_rule[1]:
 		study_card_rule[1] = 1
-		study_card_rule[2] = study_card_rule[2].partition(' ')[0]
+		study_card_rule[2] = study_card_rule[2].replace(' ', '_').upper()
 		study_card_assignment_list.append(study_card_rule)
 	elif 'protocolName' == study_card_rule[1]:
 		study_card_rule[1] = 2
@@ -999,7 +999,9 @@ print("Import dataset_expression: end")
 
 print("Import dataset_file: start")
 sourceCursor.execute("""
-        SELECT DATASET_FILE_ID, (PACS_DATASET_FILE.DATASET_FILE_ID IS NOT NULL), PATH, DATASET_EXPRESSION_ID
+        SELECT DATASET_FILE_ID, (PACS_DATASET_FILE.DATASET_FILE_ID IS NOT NULL),
+            REPLACE(PATH, "file:/vol/rw/shanoir-nifti", "file:/var/datasets-data/old") as PATH,
+            DATASET_EXPRESSION_ID
             FROM DATASET_FILE LEFT JOIN PACS_DATASET_FILE USING (DATASET_FILE_ID)""")
 bulk_insert(targetCursor, "dataset_file", "id, pacs, path, dataset_expression_id", sourceCursor)
 targetConn.commit()
