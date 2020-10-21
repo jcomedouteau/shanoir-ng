@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -361,6 +360,9 @@ public class DatasetApiController implements DatasetApi {
 		File tmpFile = new File(userDir.getAbsolutePath() + File.separator + "Datasets" + formatter.format(new DateTime().toDate()));
 		tmpFile.mkdirs();
 
+		byte[] data = {};
+		File zipFile = null;
+
 		// Get the data
 		try {
 			for (Dataset dataset : datasets) {
@@ -383,6 +385,14 @@ public class DatasetApiController implements DatasetApi {
 							new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Please choose either nifti, dicom or eeg file type.", null));
 				}
 			}
+		// Zip it
+		zipFile = new File(tmpFile.getAbsolutePath() + ZIP);
+		zipFile.createNewFile();
+
+		zip(tmpFile.getAbsolutePath(), zipFile.getAbsolutePath());
+
+		data = Files.readAllBytes(zipFile.toPath());
+
 		} catch (IOException | MessagingException e) {
 			LOG.error("Error while copying files: ", e);
 			FileUtils.deleteQuietly(tmpFile);
@@ -394,13 +404,6 @@ public class DatasetApiController implements DatasetApi {
 			throw new RestServiceException(
 					new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "The size of data you tried to download is too Important. Please split your download.", error));
 		}
-		// Zip it
-		File zipFile = new File(tmpFile.getAbsolutePath() + ZIP);
-		zipFile.createNewFile();
-
-		zip(tmpFile.getAbsolutePath(), zipFile.getAbsolutePath());
-
-		byte[] data = Files.readAllBytes(zipFile.toPath());
 		ByteArrayResource resource = new ByteArrayResource(data);
 
 		FileUtils.deleteDirectory(tmpFile);
