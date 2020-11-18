@@ -11,11 +11,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
  */
-
-import { Component, ViewChild, ElementRef } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { AbstractControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
+import { BidsElement } from '../../bids/model/bidsElement.model';
 import { Center } from '../../centers/shared/center.model';
 import { CenterService } from '../../centers/shared/center.service';
 import { slideDown } from '../../shared/animations/animations';
@@ -26,18 +26,18 @@ import { TableComponent } from '../../shared/components/table/table.component';
 import { DatepickerComponent } from '../../shared/date-picker/date-picker.component';
 import { KeycloakService } from '../../shared/keycloak/keycloak.service';
 import { IdName } from '../../shared/models/id-name.model';
+import { Option } from '../../shared/select/select.component';
 import { SubjectService } from '../../subjects/shared/subject.service';
+import { DatasetNode, StudyNode } from '../../tree/tree.model';
 import { User } from '../../users/shared/user.model';
 import { UserService } from '../../users/shared/user.service';
 import { capitalsAndUnderscoresToDisplayable } from '../../utils/app.utils';
 import { StudyCenter } from '../shared/study-center.model';
 import { StudyUserRight } from '../shared/study-user-right.enum';
 import { StudyUser } from '../shared/study-user.model';
-import { Dataset } from '../../datasets/shared/dataset.model';
 import { Study } from '../shared/study.model';
 import { StudyService } from '../shared/study.service';
-import { Option } from '../../shared/select/select.component';
-import { BidsElement } from '../../bids/model/bidsElement.model'
+
 
 
 @Component({
@@ -63,6 +63,8 @@ export class StudyComponent extends EntityComponent<Study> {
     private freshlyAddedMe: boolean = false;
     private studyUserBackup: StudyUser[] = [];
     protected protocolFile: File;
+
+    protected selectedDatasetIds: number[];
 
     centerOptions: Option<IdName>[];
     userOptions: Option<User>[];
@@ -162,7 +164,7 @@ export class StudyComponent extends EntityComponent<Study> {
             'visibleByDefault': [this.study.visibleByDefault],
             'downloadableByDefault': [this.study.downloadableByDefault],
             'monoCenter': [{value: this.study.monoCenter, disabled: this.study.studyCenterList && this.study.studyCenterList.length > 1}, [Validators.required]],
-            'studyCenterList': [this.selectedCenter, [this.validateCenter]],
+            'studyCenterList': [this.study.studyCenterList, [this.validateCenter]],
             'subjectStudyList': [this.study.subjectStudyList],
             'protocolFile': []
         });
@@ -237,16 +239,16 @@ export class StudyComponent extends EntityComponent<Study> {
     }
 
     private onCenterAdd(): void {
-        if (!this.selectedCenter) return;
-        let studyCenter: StudyCenter = new StudyCenter();
-        studyCenter.center = new Center();
-        studyCenter.center.id = this.selectedCenter.id;
-        studyCenter.center.name = this.selectedCenter.name;
-        this.study.studyCenterList.push(studyCenter);
-
-        let option = this.centerOptions.find(option => option.value.id == this.selectedCenter.id);
-        if (option) option.disabled = true;
-
+        if (this.selectedCenter) {
+            let studyCenter: StudyCenter = new StudyCenter();
+            studyCenter.center = new Center();
+            studyCenter.center.id = this.selectedCenter.id;
+            studyCenter.center.name = this.selectedCenter.name;
+            this.study.studyCenterList.push(studyCenter);
+    
+            let option = this.centerOptions.find(option => option.value.id == this.selectedCenter.id);
+            if (option) option.disabled = true;
+        }
         this.form.get('studyCenterList').markAsDirty();
         this.form.get('studyCenterList').updateValueAndValidity();
     }
@@ -447,7 +449,7 @@ export class StudyComponent extends EntityComponent<Study> {
         let prom = super.save().then(result => {
             // Once the study is saved, save associated file if changed
             if (this.protocolFile) {
-                this.studyService.uploadFile(this.protocolFile, this.entity.id);
+                this.studyService.uploadFile(this.protocolFile, this.entity.id).toPromise().then(result => (console.log("file saved sucessfuly")));
             }
         });
         return prom;
@@ -455,5 +457,47 @@ export class StudyComponent extends EntityComponent<Study> {
 
     getFileName(element): string {
         return element.split('\\').pop().split('/').pop();
+    }
+
+    onTreeSelectedChange(study: StudyNode) {
+        let dsIds: number [] = [];
+        if (study.subjects && study.subjects != 'UNLOADED') {
+            study.subjects.forEach(subj => {
+                if (subj.examinations && subj.examinations != 'UNLOADED') {
+                    subj.examinations.forEach(exam => {
+                        if (exam.datasetAcquisitions && exam.datasetAcquisitions != 'UNLOADED') {
+                            exam.datasetAcquisitions.forEach(dsAcq => {
+                                dsIds = dsIds.concat(this.searchSelectedInDatasetNodes(dsAcq.datasets));
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        this.selectedDatasetIds = dsIds;
+    }
+
+    private searchSelectedInDatasetNodes(dsNodes: DatasetNode[] | 'UNLOADED'): number[] {
+        if (dsNodes && dsNodes != 'UNLOADED') {
+            return dsNodes.map(ds => {
+                // get selected dataset from this nodes
+                let idsFound: number[] = ds.selected ? [ds.id] : [];
+                // get selected datasets from this node's processings datasets
+                if (ds.processings && ds.processings != 'UNLOADED') {
+                    let foundInProc: number[] = ds.processings
+                            .map(proc => this.searchSelectedInDatasetNodes(proc.datasets))
+                            .reduce((allFromProc, oneProc) => allFromProc.concat(oneProc), []);
+                        idsFound = idsFound.concat(foundInProc);
+                }
+                return idsFound;
+            }).reduce((allFromDs, thisDs) => {
+                return allFromDs.concat(thisDs);
+            }, []);
+        } else return [];
+    }
+
+    onStudyNodeInit(studyNode: StudyNode) {
+        studyNode.open = true;
+        this.breadcrumbsService.currentStep.data.studyNode = studyNode;
     }
 }

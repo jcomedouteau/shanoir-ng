@@ -12,16 +12,24 @@
  * along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
  */
 
-package org.shanoir.ng.configuration.security;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+package org.shanoir.ng.dataset.dto;
 
-@Configuration 
-@ComponentScan("org.shanoir.ng") 
-@EnableWebMvc   
-@Import({ SecurityConfiguration.class })
-public class AppConfig {  
-	
-} 
+import java.util.List;
+
+import org.shanoir.ng.processing.dto.DatasetProcessingDTO;
+
+
+public class DatasetAndProcessingsDTO extends DatasetDTO implements DatasetAndProcessingsDTOInterface {
+
+	private List<DatasetProcessingDTO> processings;
+
+	@Override
+	public List<DatasetProcessingDTO> getProcessings() {
+		return processings;
+	}
+
+	@Override
+	public void setProcessings(List<DatasetProcessingDTO> processings) {
+		this.processings = processings;
+	}
+}
