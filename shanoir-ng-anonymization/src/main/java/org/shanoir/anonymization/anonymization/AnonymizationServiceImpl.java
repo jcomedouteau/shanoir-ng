@@ -397,7 +397,7 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 		if (action != null) {
 			if (action.equals("X")) {
 				result = null;
-			} else if (action.equals("Z")) {
+			} else if (action == "Z") {
 				result = "";
 			} else if (action.equals("D")) {
 				SecureRandom random = new SecureRandom();
