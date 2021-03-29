@@ -390,7 +390,7 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 	 * Get the anonymized value of the tag
 	 * 
 	 * @param action: the action letter to apply
-	 * @return the action
+	 * @return the action to set
 	 */
 	private String getFinalValueForTag(final String action) {
 		String result = "";
