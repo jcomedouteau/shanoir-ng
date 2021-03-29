@@ -154,11 +154,8 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 	public void performAnonymization(final File dicomFile, Map<String, String> anonymizationMap, boolean isShanoirAnonymization,
 			String patientName, String patientID, Map<String, String> seriesInstanceUIDs,
 			Map<String, String> studyInstanceUIDs, Map<String, String> studyIds) throws Exception {
-		DicomInputStream din = null;
-		DicomOutputStream dos = null;
-		try {
-			din = new DicomInputStream(dicomFile);
-			
+		try (DicomInputStream din = new DicomInputStream(dicomFile)) {
+
 			/**
 			 * DICOM "header"/meta-information fields: read tags
 			 */
@@ -236,22 +233,12 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 				anonymizePatientMetaData(datasetAttributes, patientName, patientID, patientBirthDateAttr);
 			}
 			LOG.debug("finish anonymization: begin storage");
-			dos = new DicomOutputStream(dicomFile);
-			dos.writeDataset(metaInformationAttributes, datasetAttributes);
-			LOG.debug("finish anonymization: end storage");
+			try (DicomOutputStream dos = new DicomOutputStream(dicomFile)) {
+				dos.writeDataset(metaInformationAttributes, datasetAttributes);
+				LOG.debug("finish anonymization: end storage");
+			}
 		} catch (final IOException exc) {
 			LOG.error("performAnonymization : error while anonimizing file " + dicomFile.toString() + " : ", exc);
-		} finally {
-			try {
-				if (din != null) {
-					din.close();
-				}
-				if (dos != null) {
-					dos.close();
-				}
-			} catch (IOException e) {
-				LOG.error(e.getMessage(), e);
-			}
 		}
 	}
 
@@ -345,7 +332,7 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 
 	private void anonymizeSeriesInstanceUID(int tagInt, Attributes attributes, Map<String, String> seriesInstanceUIDs) {
 		String value;
-		if (seriesInstanceUIDs != null && seriesInstanceUIDs.size() != 0
+		if (!seriesInstanceUIDs.isEmpty()
 				&& seriesInstanceUIDs.get(attributes.getString(tagInt)) != null) {
 			value = seriesInstanceUIDs.get(attributes.getString(tagInt));
 		} else {
@@ -364,7 +351,7 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 
 	private void anonymizeStudyInstanceUID(int tagInt, Attributes attributes, Map<String, String> studyInstanceUIDs) {
 		String value;
-		if (studyInstanceUIDs != null && studyInstanceUIDs.size() != 0
+		if (!studyInstanceUIDs.isEmpty()
 				&& studyInstanceUIDs.get(attributes.getString(tagInt)) != null) {
 			value = studyInstanceUIDs.get(attributes.getString(tagInt));
 		} else {
@@ -383,7 +370,7 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 
 	private void anonymizeStudyId(int tagInt, Attributes attributes, Map<String, String> studyIds) {
 		String value;
-		if (studyIds != null && studyIds.size() != 0 && studyIds.get(attributes.getString(tagInt)) != null) {
+		if (!studyIds.isEmpty() && studyIds.get(attributes.getString(tagInt)) != null) {
 			value = studyIds.get(attributes.getString(tagInt));
 		} else {
 			char[] chars = "abcdefghijklmnopqrstuvwxyz".toCharArray();
@@ -444,7 +431,9 @@ public class AnonymizationServiceImpl implements AnonymizationService {
 	 */
 	private void anonymizeTagAccordingToVR(Attributes attributes, int tag, String value) {
 		VR vr = attributes.getVR(tag);
-		if (vr == null) return;		
+		if (vr == null) {
+			return;
+		}
 		// VR.AT = Attribute Tag
 		// VR.SL = Signed Long || VR.UL = Unsigned Long
 		// VR.SS = Signed Short || VR.US = Unsigned Short
