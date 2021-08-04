@@ -24,11 +24,11 @@ spring:
     url: jdbc:mysql://${SHANOIR_PREFIX}database:3306/datasets?useLegacyDatetimeCode=false&serverTimezone=Europe/Paris&characterEncoding=utf-8&useSSL=false
     username: datasets
     password: password
-    driver-class-name: com.mysql.jdbc.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
     initialization-mode: never
     data: classpath:/scripts/import.sql
   jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     generate-ddl: false # default, but prefer to set it explicitly (bootstrap.sh)
     hibernate:
       # Hibernate ddl auto (create, create-drop, update, validate)
