@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -74,6 +75,7 @@ import org.shanoir.ng.shared.exception.EntityNotFoundException;
 import org.shanoir.ng.shared.exception.ErrorDetails;
 import org.shanoir.ng.shared.exception.ErrorModel;
 import org.shanoir.ng.shared.exception.RestServiceException;
+import org.shanoir.ng.shared.model.Subject;
 import org.shanoir.ng.shared.repository.StudyRepository;
 import org.shanoir.ng.shared.repository.SubjectRepository;
 import org.shanoir.ng.utils.KeycloakUtil;
@@ -320,9 +322,10 @@ public class DatasetApiController implements DatasetApi {
 		List<URL> pathURLs = new ArrayList<>();
 
 		try {
-			String subjectName = subjectRepo.findById(dataset.getSubjectId()).orElse(null).getName();
-			if (subjectName == null) {
-				subjectName = "unknown";
+			String subjectName = "unknown";
+			Optional<Subject> subjectOpt = subjectRepo.findById(dataset.getSubjectId());
+			if (subjectOpt.isPresent()) {
+				subjectName = subjectOpt.get().getName();
 			}
 
 			if (DCM.equals(format)) {
@@ -360,7 +363,7 @@ public class DatasetApiController implements DatasetApi {
 				throw new RestServiceException(
 						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Bad arguments", null));
 			}
-		} catch (IOException | MessagingException e) {
+		} catch (Exception e) {
 			LOG.error("Error while retrieveing dataset data.", e);
 			FileUtils.deleteQuietly(workFolder);
 
@@ -498,18 +501,18 @@ public class DatasetApiController implements DatasetApi {
 				if (pathURLs.isEmpty()) {
 					failingDatasets.add(dataset);
 				}
-			} catch (IOException | MessagingException e) {
-				// Here we just keep in memory the list of failing files
-				LOG.error("Error while copying files: ", e);
-				failingDatasets.add(dataset);
 			} catch(OutOfMemoryError error) {
 				LOG.error("Out of memory error while copying files: ", error);
 				FileUtils.deleteQuietly(tmpFile);
 				throw new RestServiceException(
 						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "The size of data you tried to download is too Important. Please split your download.", error));
+			} catch (Exception e) {
+				// Here we just keep in memory the list of failing files
+				LOG.error("Error while copying files: ", e);
+				failingDatasets.add(dataset);
 			}
 		}
-		
+
 		// Check emptiness => no data at all
 		if (isEmpty) {
 			// Folder is empty => return an error
@@ -524,9 +527,10 @@ public class DatasetApiController implements DatasetApi {
 			FileUtils.deleteQuietly(tmpFile);
 			StringBuilder listOfDatasets = new StringBuilder();
 			for (Dataset dataset : failingDatasets) {
-				listOfDatasets.append(dataset.getName())
-							  .append("(").append(dataset.getId())
-							  .append("), ");
+				listOfDatasets.append("(ID = ").append(dataset.getId())
+							  .append(") ")
+							  .append(dataset.getName())
+							  .append(", ");
 			}
 			listOfDatasets.deleteCharAt(listOfDatasets.length() - 1);
 			listOfDatasets.deleteCharAt(listOfDatasets.length() - 1);
