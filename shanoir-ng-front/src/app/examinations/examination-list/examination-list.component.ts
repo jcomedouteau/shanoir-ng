@@ -92,6 +92,16 @@ export class ExaminationListComponent extends EntityListComponent<Examination>{
         };
     }
 
+    canEdit(ex: Examination): boolean {
+        return this.keycloakService.isUserAdmin() || (
+            ex.subjectStudy &&
+			ex.subjectStudy.subjectStudy &&
+			ex.subjectStudy.subjectStudy.study &&
+            ex.subjectStudy.subjectStudy.study.studyUserList && 
+            ex.subjectStudy.subjectStudy.study.studyUserList.filter(su => su.studyUserRights.includes(StudyUserRight.CAN_IMPORT)).length > 0
+        );
+    }
+
     canDelete(exam: Examination): boolean {
         return this.keycloakService.isUserAdmin() || (
             exam.study &&
