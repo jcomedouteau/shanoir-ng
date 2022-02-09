@@ -1,3 +1,4 @@
+
 /**
  * Shanoir NG - Import, manage and share neuroimaging data
  * Copyright (C) 2009-2019 Inria - https://www.inria.fr/
@@ -57,6 +58,7 @@ export class ExaminationComponent extends EntityComponent<Examination> {
     hasAdministrateRight: boolean = false;
     hasImportRight: boolean = false;
     hasDownloadRight: boolean = false;
+    pattern: string = '[^:|<>&\/]+';
 
     datasetIds: Promise<number[]> = new Promise((resolve, reject) => {});
     datasetIdsLoaded: boolean = false;
@@ -136,7 +138,7 @@ export class ExaminationComponent extends EntityComponent<Examination> {
             'subject': [{value: this.examination.subject, disabled: this.inImport}],
             'center': [{value: this.examination.center, disabled: this.inImport}, Validators.required],
             'examinationDate': [this.examination.examinationDate, [Validators.required, DatepickerComponent.validator]],
-            'comment': [this.examination.comment],
+            'comment': [this.examination.comment, Validators.pattern(this.pattern)],
             'note': [this.examination.note],
             'subjectWeight': [this.examination.subjectWeight]
         });
@@ -187,6 +189,10 @@ export class ExaminationComponent extends EntityComponent<Examination> {
          return this.keycloakService.isUserAdmin() || this.hasAdministrateRight;
     }
 
+    public isAdmin(): boolean {
+         return this.keycloakService.isUserAdmin();
+    }
+
     public deleteFile(file: any) {
         this.examination.extraDataFilePathList = this.examination.extraDataFilePathList.filter(fileToKeep => fileToKeep != file);
         this.files = this.files.filter(fileToKeep => fileToKeep.name != file);
@@ -209,7 +215,12 @@ export class ExaminationComponent extends EntityComponent<Examination> {
                 this.examinationService.postFile(file, this.entity.id);
             }
             return result;            
-        });
+        }).catch(reason => { if (reason.status == 403) {
+            this.msgBoxService.log('error', 'Updating study, subject or center of an examination is forbiden. Please contact an administrator.');
+            return null;
+        } else {
+            throw reason;
+        }});
     }
 
     getFileName(element): string {
