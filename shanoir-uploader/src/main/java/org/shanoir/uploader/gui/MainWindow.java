@@ -195,6 +195,7 @@ public class MainWindow extends JFrame {
 		JMenu mnImport = new JMenu(resourceBundle.getString("shanoir.uploader.importMenu"));
 		menuBar.add(mnImport);
 		
+		// CSV import
 		JMenuItem mnImportExcell = new JMenuItem(resourceBundle.getString("shanoir.uploader.importMenu.csv"));
 		mnImport.add(mnImportExcell);
 		
@@ -204,6 +205,18 @@ public class MainWindow extends JFrame {
 				ImportFromCSVWindow importcsv = new ImportFromCSVWindow(shanoirUploaderFolder, resourceBundle, scrollPaneUpload, dicomServerClient, ShUpOnloadConfig.getShanoirUploaderServiceClient());
 			}
 		});
+		
+		// BIDS Import
+		JMenuItem mnImportBids = new JMenuItem(resourceBundle.getString("shanoir.uploader.importMenu.bids"));
+		mnImport.add(mnImportBids);
+		
+		mnImportBids.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ImportFromBidsWindow importbids = new ImportFromBidsWindow(shanoirUploaderFolder, resourceBundle, scrollPaneUpload, dicomServerClient, ShUpOnloadConfig.getShanoirUploaderServiceClient());
+			}
+		});
+
 
 		// add Server Configuration and Dicom configuration Menu Items
 		JMenuItem mntmDicomServerConfiguration = new JMenuItem(
