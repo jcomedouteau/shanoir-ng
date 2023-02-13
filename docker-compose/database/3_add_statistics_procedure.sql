@@ -18,7 +18,7 @@ delimiter //
 
 create procedure getStatistics(IN studyNameInRegExp VARCHAR(255), IN studyNameOutRegExp VARCHAR(255), IN subjectNameInRegExp VARCHAR(255), IN subjectNameOutRegExp VARCHAR(255))
 begin
-    select 'patient_id', 'shanoir_name', 'double_hash', 'birthname1', 'birthname2', 'birthname3', 'lastname1', 'lastname2', 'lastname3', 'firstname1', 'firstname2', 'firstname3', 'birthdate1', 'sex', 'birth_year', 'study_id', 'study_name', 'sequence_id', 'norm_sequence_name', 'sequence_name', 'center_id', 'center', 'device_manufacturer', 'device_model', 'device_field_strength', 'device_serial_number', 'examination_id', 'examination_date', 'import_date', 'creation_date', 'protocol_type', 'import_username'
+    select 'patient_id', 'shanoir_name', 'double_hash', 'birthname1', 'birthname2', 'birthname3', 'lastname1', 'lastname2', 'lastname3', 'firstname1', 'firstname2', 'firstname3', 'birthdate1', 'sex', 'birth_year', 'study_id', 'study_name', 'sequence_id', 'norm_sequence_name', 'sequence_name', 'center_id', 'center', 'device_manufacturer', 'device_model', 'device_field_strength', 'device_serial_number', 'examination_id', 'examination_date', 'import_date', 'creation_date', 'protocol_type', 'import_user_id'
     union all
     select distinct
     sb.id as patient_id, 
@@ -64,12 +64,12 @@ begin
     inner join datasets.mr_protocol as pr
     inner join datasets.mr_protocol_metadata as pr_md
     inner join datasets.examination as ex
+    left join users.events ev on (ev.object_id = ex.id and ev.event_type = 'importDataset.event')
+    left join users.users us on ev.user_id = us.id
     inner join datasets.dataset as dt
     inner join datasets.dataset_metadata as dt_md
     inner join datasets.dataset_acquisition as dt_acq
     inner join datasets.mr_dataset_acquisition as mr_acq
-    inner join users.events as ev
-    inner join users.users us
 
     on st.id = ex.study_id
     and sb.id = ex.subject_id
@@ -87,10 +87,7 @@ begin
     and sb.name rlike if(subjectNameInRegExp is null or subjectNameInRegExp = '', '.*', subjectNameInRegExp)
     and sb.name not rlike if(subjectNameOutRegExp is null or subjectNameOutRegExp = '', '^\b\B$', subjectNameOutRegExp)
     and st.name rlike if(studyNameInRegExp is null or studyNameInRegExp = '', '.*', studyNameInRegExp)
-    and st.name not rlike if(studyNameOutRegExp is null or studyNameOutRegExp = '', '^\b\B$', studyNameOutRegExp)
-    and ev.event_type = 'importDataset.event'
-    and ev.object_id = ex.id
-    and us.id = ev.user_id; 
+    and st.name not rlike if(studyNameOutRegExp is null or studyNameOutRegExp = '', '^\b\B$', studyNameOutRegExp);
 end //
 
 delimiter ;
