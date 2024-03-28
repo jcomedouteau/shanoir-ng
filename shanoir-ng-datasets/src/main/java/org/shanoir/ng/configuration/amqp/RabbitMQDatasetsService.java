@@ -127,14 +127,14 @@ public class RabbitMQDatasetsService {
 	@RabbitListener(bindings = @QueueBinding(
 			value = @Queue(value = RabbitMQConfiguration.STUDY_USER_QUEUE_DATASET, durable = "true"),
 			exchange = @Exchange(value = RabbitMQConfiguration.STUDY_USER_EXCHANGE, ignoreDeclarationExceptions = "true",
-			autoDelete = "false", durable = "true", type=ExchangeTypes.FANOUT))
+			autoDelete = "false", durable = "true", type=ExchangeTypes.FANOUT)), containerFactory = "multipleConsumersFactory"
 	)
 	public void receiveMessage(String commandArrStr) {
 		listener.receiveMessageImport(commandArrStr);
 	}
 
 	@Transactional
-	@RabbitListener(queues = RabbitMQConfiguration.STUDY_NAME_UPDATE_QUEUE)
+	@RabbitListener(queues = RabbitMQConfiguration.STUDY_NAME_UPDATE_QUEUE, containerFactory = "singleConsumerFactory")
 	@RabbitHandler
 	public void receiveStudyNameUpdate(final String studyStr) {
 		try {
@@ -192,7 +192,7 @@ public class RabbitMQDatasetsService {
 	}
 
 	@Transactional
-	@RabbitListener(queues = RabbitMQConfiguration.SUBJECT_NAME_UPDATE_QUEUE)
+	@RabbitListener(queues = RabbitMQConfiguration.SUBJECT_NAME_UPDATE_QUEUE, containerFactory = "singleConsumerFactory")
 	@RabbitHandler
 	public boolean receiveSubjectNameUpdate(final String subjectStr) {		
 		Subject su = receiveAndUpdateIdNameEntity(subjectStr, Subject.class, subjectRepository);
@@ -254,14 +254,14 @@ public class RabbitMQDatasetsService {
 	}
 
 	@Transactional
-	@RabbitListener(queues = RabbitMQConfiguration.ACQUISITION_EQUIPEMENT_UPDATE_QUEUE)
+	@RabbitListener(queues = RabbitMQConfiguration.ACQUISITION_EQUIPEMENT_UPDATE_QUEUE, containerFactory = "singleConsumerFactory")
 	@RabbitHandler
 	public void receiveAcEqUpdate(final String acEqStr) {
 		receiveAndUpdateIdNameEntity(acEqStr, AcquisitionEquipment.class, acquisitionEquipmentRepository);
 	}
 
 	@Transactional
-	@RabbitListener(queues = RabbitMQConfiguration.CENTER_NAME_UPDATE_QUEUE)
+	@RabbitListener(queues = RabbitMQConfiguration.CENTER_NAME_UPDATE_QUEUE, containerFactory = "singleConsumerFactory")
 	@RabbitHandler
 	public void receiveCenterNameUpdate(final String centerStr) {
 		receiveAndUpdateIdNameEntity(centerStr, Center.class, centerRepository);
@@ -303,7 +303,7 @@ public class RabbitMQDatasetsService {
 			key = ShanoirEventType.CREATE_DATASET_ACQUISITION_EVENT,
 			value = @Queue(value = RabbitMQConfiguration.CREATE_DATASET_ACQUISITION_QUEUE, durable = "true"),
 			exchange = @Exchange(value = RabbitMQConfiguration.EVENTS_EXCHANGE, ignoreDeclarationExceptions = "true",
-			autoDelete = "false", durable = "true", type=ExchangeTypes.TOPIC))
+			autoDelete = "false", durable = "true", type=ExchangeTypes.TOPIC)), containerFactory = "multipleConsumersFactory"
 			)
 	@Transactional(isolation = Isolation.READ_UNCOMMITTED,  propagation = Propagation.REQUIRES_NEW)
 	public void createDatasetAcquisition(final String studyStr) {
@@ -333,7 +333,7 @@ public class RabbitMQDatasetsService {
 			key = ShanoirEventType.DELETE_SUBJECT_EVENT,
 			value = @Queue(value = RabbitMQConfiguration.DELETE_SUBJECT_QUEUE, durable = "true"),
 			exchange = @Exchange(value = RabbitMQConfiguration.EVENTS_EXCHANGE, ignoreDeclarationExceptions = "true",
-			autoDelete = "false", durable = "true", type=ExchangeTypes.TOPIC))
+			autoDelete = "false", durable = "true", type=ExchangeTypes.TOPIC)), containerFactory = "singleConsumerFactory"
 			)
 	@Transactional
 	public void deleteSubject(String eventAsString) throws AmqpRejectAndDontRequeueException {
@@ -371,7 +371,7 @@ public class RabbitMQDatasetsService {
 			key = ShanoirEventType.DELETE_STUDY_EVENT,
 			value = @Queue(value = RabbitMQConfiguration.DELETE_STUDY_QUEUE, durable = "true"),
 			exchange = @Exchange(value = RabbitMQConfiguration.EVENTS_EXCHANGE, ignoreDeclarationExceptions = "true",
-			autoDelete = "false", durable = "true", type=ExchangeTypes.TOPIC))
+			autoDelete = "false", durable = "true", type=ExchangeTypes.TOPIC)), containerFactory = "singleConsumerFactory"
 			)
 	@Transactional
 	public void deleteStudy(String eventAsString) throws AmqpRejectAndDontRequeueException {
@@ -397,7 +397,7 @@ public class RabbitMQDatasetsService {
 		}
 	}
 
-	@RabbitListener(queues = RabbitMQConfiguration.STUDY_DATASETS_DETAILED_STORAGE_VOLUME)
+	@RabbitListener(queues = RabbitMQConfiguration.STUDY_DATASETS_DETAILED_STORAGE_VOLUME, containerFactory = "multipleConsumersFactory")
 	@RabbitHandler
 	@Transactional
 	public String getDetailedStudyStorageVolume(Long studyId) {
@@ -415,7 +415,7 @@ public class RabbitMQDatasetsService {
 		}
 	}
 
-	@RabbitListener(queues = RabbitMQConfiguration.STUDY_DATASETS_TOTAL_STORAGE_VOLUME)
+	@RabbitListener(queues = RabbitMQConfiguration.STUDY_DATASETS_TOTAL_STORAGE_VOLUME, containerFactory = "multipleConsumersFactory")
 	@RabbitHandler
 	@Transactional
 	public String getDetailedStorageVolumeByStudy(List<Long> studyIds) {
@@ -441,7 +441,7 @@ public class RabbitMQDatasetsService {
 	 *
 	 * @return
 	 */
-	@RabbitListener(queues = RabbitMQConfiguration.COPY_DATASETS_TO_STUDY_QUEUE)
+	@RabbitListener(queues = RabbitMQConfiguration.COPY_DATASETS_TO_STUDY_QUEUE, containerFactory = "multipleConsumersFactory")
 	@RabbitHandler
 	@Transactional
 	@Async
@@ -482,15 +482,15 @@ public class RabbitMQDatasetsService {
 				event.setProgress(progress);
 				eventService.publishEvent(event);
 
-				LOG.warn("[CopyDatasets] Start copy for dataset " + datasetParentId + " to study " + studyId);
+				LOG.info("[CopyDatasets] Start copy for dataset " + datasetParentId + " to study " + studyId);
 				Long dsCount = datasetRepository.countDatasetsBySourceIdAndStudyId(datasetParentId, studyId);
 				Dataset datasetParent = datasetService.findById(datasetParentId);
 
 				if (datasetParent.getSourceId() != null) {
-					LOG.warn("[CopyDatasets] Selected dataset is a copy, please pick the original dataset.");
+					LOG.info("[CopyDatasets] Selected dataset is a copy, please pick the original dataset.");
 					countCopy++;
 				} else if (dsCount != 0) {
-					LOG.warn("[CopyDatasets] Dataset already exists in this study, copy aborted.");
+					LOG.info("[CopyDatasets] Dataset already exists in this study, copy aborted.");
 					countAlreadyExist++;
 
 				} else {
@@ -498,7 +498,7 @@ public class RabbitMQDatasetsService {
 					Long newDsId = (Long) result[0];
 					countProcessed += (int) result[1];
 					countSuccess += (int) result[2];
-					LOG.warn("countProcessed : " + countProcessed);
+					LOG.info("countProcessed : " + countProcessed);
 					if (newDsId != null)
 						newDatasets.add(newDsId);
 				}
@@ -510,15 +510,16 @@ public class RabbitMQDatasetsService {
 					countProcessed + " are processed datasets and cannot be copied.");
 			event.setStatus(ShanoirEvent.SUCCESS);
 			event.setProgress(1.0f);
-
 			eventService.publishEvent(event);
 			solrService.indexDatasets(newDatasets);
 
 		} catch (Exception e) {
-			event.setMessage("[CopyDatasets] Error during the copy of dataset.");
-			event.setStatus(ShanoirEvent.ERROR);
-			event.setProgress(-1f);
-			eventService.publishEvent(event);
+			if (event != null) {
+				event.setMessage("[CopyDatasets] Error during the copy of dataset.");
+				event.setStatus(ShanoirEvent.ERROR);
+				event.setProgress(-1f);
+				eventService.publishEvent(event);
+			}
 			LOG.error("Something went wrong during the copy. {}", e.getMessage());
 			throw new AmqpRejectAndDontRequeueException(e.getMessage(), e);
 		}

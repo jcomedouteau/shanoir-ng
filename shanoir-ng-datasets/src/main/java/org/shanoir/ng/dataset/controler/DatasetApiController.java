@@ -30,7 +30,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -59,7 +58,6 @@ import org.shanoir.ng.shared.exception.*;
 import org.shanoir.ng.utils.DatasetFileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -119,52 +117,38 @@ public class DatasetApiController implements DatasetApi {
 	ShanoirEventService eventService;
 
 	@Autowired
-	private RabbitTemplate rabbitTemplate;
-	
-	@Autowired
 	DatasetDownloaderServiceImpl datasetDownloaderService;
 
 	/** Number of downloadable datasets. */
 	private static final int DATASET_LIMIT = 500;
 
-	@PostConstruct
-	private void initialize() {
-		// Set timeout to 1mn (consider nifti reconversion can take some time)
-		this.rabbitTemplate.setReplyTimeout(60000);
-	}
-
 	@Override
 	public ResponseEntity<Void> deleteDataset(
-			@Parameter(name = "id of the dataset", required = true) @PathVariable("datasetId") final Long datasetId)
-					throws RestServiceException {
+			@Parameter(name = "id of the dataset", required = true) @PathVariable("datasetId") final Long datasetId) throws EntityNotFoundException, RestServiceException {
 		try {
 			datasetService.deleteById(datasetId);
 			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		} catch (EntityNotFoundException e) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		} catch (RestServiceException e) {
-			return new ResponseEntity<>(HttpStatus.UNPROCESSABLE_ENTITY);
+		} catch (EntityNotFoundException | RestServiceException e) {
+			throw e;
 		} catch (Exception e) {
-			LOG.error("Error while deleting dataset. Please check DICOM server configuration.", e);
-			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+			ErrorModel error = new ErrorModel(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error while deleting dataset. Please check DICOM server configuration.", e.getMessage());
+			throw new RestServiceException(e, error);
 		}
 	}
 
 	@Override
 	public ResponseEntity<Void> deleteDatasets(
 			@Parameter(name = "ids of the datasets", required=true) @Valid
-			@RequestBody(required = true) List<Long> datasetIds)
-					throws RestServiceException {
+			@RequestBody List<Long> datasetIds)
+			throws RestServiceException {
 		try {
 			datasetService.deleteByIdIn(datasetIds);
 			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		} catch (EntityNotFoundException e) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		} catch (RestServiceException e) {
-			return new ResponseEntity<>(HttpStatus.UNPROCESSABLE_ENTITY);
-		} catch (IOException | SolrServerException e) {
-			LOG.error("Error while deleting datasets: ", e);
-			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+			throw e;
+		} catch (Exception e) {
+			ErrorModel error = new ErrorModel(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error while deleting dataset. Please check DICOM server configuration.", e.getMessage());
+			throw new RestServiceException(e, error);
 		}
 	}
 
@@ -284,6 +268,14 @@ public class DatasetApiController implements DatasetApi {
 			}
 		}
 		return new ResponseEntity<List<DatasetDTO>>(datasetMapper.datasetToDatasetDTO(datasets), HttpStatus.OK);
+	}
+
+	@Override
+	public ResponseEntity<Integer> findNbDatasetByStudyId(
+			@Parameter(name = "id of the study", required = true) @PathVariable("studyId") Long studyId) {
+		
+		final int nbDatasets = datasetService.countByStudyId(studyId);
+		return new ResponseEntity<Integer>(nbDatasets, HttpStatus.OK);
 	}
 
 	@Override
